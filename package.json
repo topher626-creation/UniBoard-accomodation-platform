@@ -1,0 +1,31 @@
+{
+  "name": "@uniboard/monorepo",
+  "version": "1.0.0",
+  "description": "UniBoard - Student Accommodation Platform",
+  "private": true,
+  "author": "SiameChristopher",
+  "license": "MIT",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=frontend\" \"npm run dev --workspace=backend\"",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:backend": "npm run dev --workspace=backend",
+    "build": "npm run build --workspace=frontend",
+    "build:frontend": "npm run build --workspace=frontend",
+    "build:backend": "echo 'Backend does not require build'",
+    "lint": "npm run lint --workspace=frontend",
+    "start:backend": "npm start --workspace=backend",
+    "test": "echo 'No tests configured'",
+    "seed": "npm run seed --workspace=backend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
