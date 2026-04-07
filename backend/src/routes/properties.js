@@ -1,9 +1,32 @@
 const express = require("express");
 const { Op } = require('sequelize');
+const jwt = require("jsonwebtoken");
 const { Property, PropertyImage, PropertyFeature, User, Building, Compound } = require("../models");
 const auth = require("../middleware/auth");
 
 const router = express.Router();
+const getAvailabilityStatus = (availableBeds) => {
+  if (availableBeds <= 0) return "FULL";
+  if (availableBeds <= 5) return "LOW";
+  return "AVAILABLE";
+};
+
+const getOptionalUser = async (req) => {
+  try {
+    const authHeader = req.header("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return null;
+    }
+
+    const token = authHeader.slice(7).trim();
+    if (!token) return null;
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    return { id: decoded.userId };
+  } catch {
+    return null;
+  }
+};
 
 // Get all properties (public - limited info for non-authenticated users)
 router.get("/", async (req, res) => {
@@ -60,6 +83,8 @@ router.get("/", async (req, res) => {
 
     // Format response - hide sensitive info for non-authenticated users
     const formattedProperties = properties.map(property => ({
+      available_beds: property.availableBeds,
+      availability_status: getAvailabilityStatus(property.availableBeds),
       id: property.id,
       name: property.name,
       price: property.price,
@@ -67,7 +92,6 @@ router.get("/", async (req, res) => {
       room_type: property.room_type,
       total_beds: property.total_beds,
       occupied_beds: property.occupied_beds,
-      available_beds: property.availableBeds,
       image: property.images && property.images.length > 0 ? property.images[0].image_url : null,
       compound: property.building?.compound?.name,
       landlord_name: property.landlord?.name
@@ -77,6 +101,45 @@ router.get("/", async (req, res) => {
   } catch (error) {
     console.error('Error fetching properties:', error);
     res.status(500).json({ message: error.message });
+  }
+});
+
+// Get landlord/admin properties
+router.get("/mine", auth, async (req, res) => {
+  try {
+    if (req.user.role !== "landlord" && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    const whereClause = req.user.role === "admin" ? {} : { landlord_id: req.user.id };
+    const properties = await Property.findAll({
+      where: whereClause,
+      include: [
+        {
+          model: Building,
+          as: "building",
+          include: [{ model: Compound, as: "compound" }]
+        }
+      ],
+      order: [["created_at", "DESC"]]
+    });
+
+    const formatted = properties.map((property) => ({
+      id: property.id,
+      name: property.name,
+      price: property.price,
+      approved: property.approved,
+      total_beds: property.total_beds,
+      occupied_beds: property.occupied_beds,
+      available_beds: property.availableBeds,
+      availability_status: getAvailabilityStatus(property.availableBeds),
+      compound: property.building?.compound?.name || null,
+      building: property.building?.name || null
+    }));
+
+    return res.json(formatted);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch your properties" });
   }
 });
 
@@ -113,8 +176,8 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ message: "Property not found" });
     }
 
-    // Check if user is authenticated
-    const isAuthenticated = req.user ? true : false;
+    const optionalUser = await getOptionalUser(req);
+    const isAuthenticated = Boolean(optionalUser);
 
     if (!isAuthenticated && !property.approved) {
       return res.status(404).json({ message: "Property not found" });
@@ -130,6 +193,7 @@ router.get("/:id", async (req, res) => {
       total_beds: property.total_beds,
       occupied_beds: property.occupied_beds,
       available_beds: property.availableBeds,
+      availability_status: getAvailabilityStatus(property.availableBeds),
       approved: property.approved,
       images: property.images.map(img => img.image_url),
       features: property.features.map(feat => feat.feature),
@@ -137,8 +201,9 @@ router.get("/:id", async (req, res) => {
       compound: property.building?.compound?.name,
       landlord: isAuthenticated ? {
         name: property.landlord?.name,
-        phone: property.landlord?.phone,
-        email: property.landlord?.email
+        phone: property.phone || property.landlord?.phone,
+        whatsapp: property.whatsapp || property.landlord?.phone,
+        email: property.landlord?.email || null
       } : null
     };
 
@@ -297,6 +362,55 @@ router.put("/:id", auth, async (req, res) => {
   } catch (error) {
     console.error('Error updating property:', error);
     res.status(500).json({ message: error.message });
+  }
+});
+
+// Landlord/admin occupancy controls
+router.patch("/:id/occupancy", auth, async (req, res) => {
+  try {
+    if (req.user.role !== "landlord" && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Not authorized to manage occupancy" });
+    }
+
+    const { action } = req.body;
+    if (!["increment", "decrement"].includes(action)) {
+      return res.status(400).json({ message: "action must be increment or decrement" });
+    }
+
+    const property = await Property.findByPk(req.params.id);
+    if (!property) {
+      return res.status(404).json({ message: "Property not found" });
+    }
+
+    if (property.landlord_id !== req.user.id && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Not authorized to manage this property" });
+    }
+
+    let nextOccupied = property.occupied_beds;
+    if (action === "increment") {
+      if (property.occupied_beds >= property.total_beds) {
+        return res.status(400).json({ message: "Property is already full" });
+      }
+      nextOccupied += 1;
+    } else {
+      if (property.occupied_beds <= 0) {
+        return res.status(400).json({ message: "Occupied beds cannot go below 0" });
+      }
+      nextOccupied -= 1;
+    }
+
+    await property.update({ occupied_beds: nextOccupied });
+    return res.json({
+      message: "Occupancy updated successfully",
+      property: {
+        id: property.id,
+        total_beds: property.total_beds,
+        occupied_beds: nextOccupied,
+        available_beds: property.total_beds - nextOccupied
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update occupancy" });
   }
 });
 

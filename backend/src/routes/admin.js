@@ -1,5 +1,5 @@
 const express = require("express");
-const { User, Property, PropertyImage, PropertyFeature } = require("../models");
+const { User, Property, PropertyImage, PropertyFeature, Compound, Building } = require("../models");
 const auth = require("../middleware/auth");
 
 const router = express.Router();
@@ -55,6 +55,33 @@ router.put("/users/:id", auth, requireAdmin, async (req, res) => {
   }
 });
 
+// Ban/unban user (admin only)
+router.patch("/users/:id/ban", auth, requireAdmin, async (req, res) => {
+  try {
+    const { banned } = req.body;
+    if (typeof banned !== "boolean") {
+      return res.status(400).json({ message: "banned must be true or false" });
+    }
+
+    const user = await User.findByPk(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.role === "admin") {
+      return res.status(403).json({ message: "Cannot ban admin users" });
+    }
+
+    await user.update({ is_banned: banned });
+    const updatedUser = await User.findByPk(req.params.id, {
+      attributes: { exclude: ["password"] }
+    });
+    return res.json(updatedUser);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update ban status" });
+  }
+});
+
 // Delete user (admin only)
 router.delete("/users/:id", auth, requireAdmin, async (req, res) => {
   try {
@@ -103,6 +130,47 @@ router.get("/properties", auth, requireAdmin, async (req, res) => {
   }
 });
 
+// Occupancy controls (admin only)
+router.patch("/properties/:id/occupancy", auth, requireAdmin, async (req, res) => {
+  try {
+    const { action } = req.body;
+    if (!["increment", "decrement"].includes(action)) {
+      return res.status(400).json({ message: "action must be increment or decrement" });
+    }
+
+    const property = await Property.findByPk(req.params.id);
+    if (!property) {
+      return res.status(404).json({ message: "Property not found" });
+    }
+
+    let nextOccupied = property.occupied_beds;
+    if (action === "increment") {
+      if (property.occupied_beds >= property.total_beds) {
+        return res.status(400).json({ message: "Property is already full" });
+      }
+      nextOccupied += 1;
+    } else {
+      if (property.occupied_beds <= 0) {
+        return res.status(400).json({ message: "Occupied beds cannot go below 0" });
+      }
+      nextOccupied -= 1;
+    }
+
+    await property.update({ occupied_beds: nextOccupied });
+    return res.json({
+      message: "Occupancy updated successfully",
+      property: {
+        id: property.id,
+        total_beds: property.total_beds,
+        occupied_beds: nextOccupied,
+        available_beds: property.total_beds - nextOccupied
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update occupancy" });
+  }
+});
+
 // Approve/reject property (admin only)
 router.put("/properties/:id", auth, requireAdmin, async (req, res) => {
   try {
@@ -145,6 +213,37 @@ router.delete("/properties/:id", auth, requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Error deleting property:', error);
     res.status(500).json({ message: error.message });
+  }
+});
+
+// Get all compounds (admin only)
+router.get("/compounds", auth, requireAdmin, async (req, res) => {
+  try {
+    const compounds = await Compound.findAll({
+      include: [
+        { model: User, as: "landlord", attributes: ["name", "email"] },
+        { model: Building, as: "buildings", attributes: ["id", "name"] }
+      ],
+      order: [["created_at", "DESC"]]
+    });
+    return res.json(compounds);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch compounds" });
+  }
+});
+
+// Delete compound (admin only)
+router.delete("/compounds/:id", auth, requireAdmin, async (req, res) => {
+  try {
+    const compound = await Compound.findByPk(req.params.id);
+    if (!compound) {
+      return res.status(404).json({ message: "Compound not found" });
+    }
+
+    await compound.destroy();
+    return res.json({ message: "Compound deleted successfully" });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to delete compound" });
   }
 });
 

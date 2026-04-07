@@ -87,6 +87,10 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
+    if (user.is_banned) {
+      return res.status(403).json({ message: "Account suspended. Contact admin." });
+    }
+
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
@@ -103,7 +107,8 @@ router.post("/login", async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        is_banned: user.is_banned
       }
     });
   } catch (error) {
