@@ -1,6 +1,6 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/db');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 
 const User = sequelize.define('User', {
   id: {
@@ -64,7 +64,6 @@ const User = sequelize.define('User', {
   }
 });
 
-// Instance method to compare password
 User.prototype.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };

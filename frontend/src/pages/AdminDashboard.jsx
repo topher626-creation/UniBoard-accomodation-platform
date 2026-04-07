@@ -1,117 +1,44 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardBody, Button, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Chip, Tabs, Tab } from "@nextui-org/react";
-import axios from "axios";
+import { useAuthStore } from "../stores/authStore.ts";
+import { apiClient } from "../lib/api.ts";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const user = useAuthStore((state) => state.user);
   const [users, setUsers] = useState([]);
-  const [listings, setListings] = useState([]);
+  const [properties, setProperties] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("listings");
+  const [activeTab, setActiveTab] = useState("properties");
 
   useEffect(() => {
-    checkAdminAccess();
-  }, []);
-
-  useEffect(() => {
-    if (user?.role === "admin") {
-      fetchData();
-    }
-  }, [user]);
-
-  const checkAdminAccess = () => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-
-    if (!token || !userData) {
+    if (!user) {
       navigate("/login");
       return;
     }
 
-    const parsedUser = JSON.parse(userData);
-    if (parsedUser.role !== "admin") {
+    if (user.role !== "admin") {
       navigate("/");
       return;
     }
 
-    setUser(parsedUser);
-  };
+    fetchData();
+  }, [user]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
+      const [usersRes, propertiesRes, statsRes] = await Promise.all([
+        apiClient.get("/admin/users"),
+        apiClient.get("/admin/properties"),
+        apiClient.get("/admin/stats")
+      ]);
 
-      // Try to fetch from API, fallback to mock data
-      try {
-        const usersResponse = await axios.get("http://localhost:5000/api/admin/users", {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-        });
-        setUsers(usersResponse.data);
-
-        const listingsResponse = await axios.get("http://localhost:5000/api/admin/listings", {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-        });
-        setListings(listingsResponse.data);
-      } catch (apiError) {
-        // Fallback to mock data
-        console.log("Using mock data for admin dashboard");
-        setUsers([
-          {
-            _id: "1",
-            name: "John Property Manager",
-            email: "landlord@uniboard.com",
-            role: "landlord",
-            createdAt: new Date().toISOString()
-          },
-          {
-            _id: "2",
-            name: "Jane Student",
-            email: "student@uniboard.com",
-            role: "student",
-            createdAt: new Date().toISOString()
-          },
-          {
-            _id: "3",
-            name: "System Administrator",
-            email: "admin@uniboard.com",
-            role: "admin",
-            createdAt: new Date().toISOString()
-          }
-        ]);
-
-        setListings([
-          {
-            _id: "1",
-            title: "Cozy Single Room Near UNZA",
-            price: 1500,
-            location: { general: "Near University of Zambia" },
-            availability: true,
-            landlord: { name: "John Property Manager" },
-            createdAt: new Date().toISOString()
-          },
-          {
-            _id: "2",
-            title: "Shared Apartment - Budget Friendly",
-            price: 800,
-            location: { general: "Near Cavendish University" },
-            availability: true,
-            landlord: { name: "John Property Manager" },
-            createdAt: new Date().toISOString()
-          },
-          {
-            _id: "3",
-            title: "Modern Studio Apartment",
-            price: 2200,
-            location: { general: "Near Lusaka Business Park" },
-            availability: false,
-            landlord: { name: "John Property Manager" },
-            createdAt: new Date().toISOString()
-          }
-        ]);
-      }
-
+      setUsers(usersRes);
+      setProperties(propertiesRes);
+      setStats(statsRes);
     } catch (error) {
       console.error("Error fetching admin data:", error);
     } finally {
@@ -119,297 +46,134 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleUserStatusChange = async (userId, newRole) => {
+  const handleUserRoleChange = async (userId, nextRole) => {
     try {
-      await axios.put(`http://localhost:5000/api/admin/users/${userId}`, { role: newRole }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
-      fetchData(); // Refresh data
+      await apiClient.put(`/admin/users/${userId}`, { role: nextRole });
+      fetchData();
     } catch (error) {
       console.error("Error updating user:", error);
     }
   };
 
-  const handleListingStatusChange = async (listingId, availability) => {
+  const handlePropertyApproval = async (propertyId, approved) => {
     try {
-      await axios.put(`http://localhost:5000/api/admin/listings/${listingId}`, { availability }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
-      fetchData(); // Refresh data
+      await apiClient.put(`/admin/properties/${propertyId}`, { approved });
+      fetchData();
     } catch (error) {
-      console.error("Error updating listing:", error);
+      console.error("Error updating property:", error);
     }
   };
 
-  const handleDeleteListing = async (listingId) => {
-    if (!window.confirm("Are you sure you want to delete this listing?")) return;
-
+  const handleDeleteProperty = async (propertyId) => {
+    if (!window.confirm("Delete this property?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/admin/listings/${listingId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
-      fetchData(); // Refresh data
+      await apiClient.delete(`/admin/properties/${propertyId}`);
+      fetchData();
     } catch (error) {
-      console.error("Error deleting listing:", error);
-    }
-  };
-
-  const handleDeleteUser = async (userId) => {
-    if (!window.confirm("Are you sure you want to delete this user?")) return;
-
-    try {
-      await axios.delete(`http://localhost:5000/api/admin/users/${userId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
-      fetchData(); // Refresh data
-    } catch (error) {
-      console.error("Error deleting user:", error);
+      console.error("Error deleting property:", error);
     }
   };
 
   if (!user || user.role !== "admin") {
-    return <div style={{ textAlign: "center", marginTop: "50px" }}>Access denied. Admin privileges required.</div>;
+    return <div className="text-center mt-16 text-gray-600">Access denied</div>;
   }
 
   if (loading) {
-    return <div style={{ textAlign: "center", marginTop: "50px" }}>Loading admin dashboard...</div>;
+    return <div className="text-center mt-16 text-gray-600">Loading admin dashboard...</div>;
   }
 
   return (
-    <div style={{ padding: "40px", maxWidth: "1400px", margin: "auto" }}>
-      <div style={{ marginBottom: "30px" }}>
-        <h1>🛡️ Admin Dashboard</h1>
-        <p>Manage users, listings, and platform content</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 px-4 py-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="text-gray-600 mt-1">Manage users, approvals, and platform operations.</p>
+        </div>
 
-      {/* Stats Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px", marginBottom: "30px" }}>
-        <Card>
-          <CardBody>
-            <h3>Total Users</h3>
-            <p style={{ fontSize: "32px", fontWeight: "bold", color: "blue" }}>{users.length}</p>
-          </CardBody>
-        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card><CardBody><p className="text-sm text-gray-500">Total Users</p><p className="text-3xl font-bold text-blue-600">{stats?.totalUsers || 0}</p></CardBody></Card>
+          <Card><CardBody><p className="text-sm text-gray-500">Total Properties</p><p className="text-3xl font-bold text-emerald-600">{stats?.totalProperties || 0}</p></CardBody></Card>
+          <Card><CardBody><p className="text-sm text-gray-500">Approved</p><p className="text-3xl font-bold text-indigo-600">{stats?.approvedProperties || 0}</p></CardBody></Card>
+          <Card><CardBody><p className="text-sm text-gray-500">Avg Price</p><p className="text-3xl font-bold text-amber-600">K{Math.round(stats?.averagePrice || 0)}</p></CardBody></Card>
+        </div>
 
-        <Card>
-          <CardBody>
-            <h3>Total Listings</h3>
-            <p style={{ fontSize: "32px", fontWeight: "bold", color: "green" }}>{listings.length}</p>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardBody>
-            <h3>Active Listings</h3>
-            <p style={{ fontSize: "32px", fontWeight: "bold", color: "orange" }}>
-              {listings.filter(l => l.availability).length}
-            </p>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardBody>
-            <h3>Landlords</h3>
-            <p style={{ fontSize: "32px", fontWeight: "bold", color: "purple" }}>
-              {users.filter(u => u.role === "landlord").length}
-            </p>
-          </CardBody>
-        </Card>
-      </div>
-
-      {/* Main Content Tabs */}
-      <Tabs selectedKey={activeTab} onSelectionChange={setActiveTab}>
-        <Tab key="listings" title="Property Listings">
-          <Card>
-            <CardBody>
-              <Table aria-label="Listings table">
-                <TableHeader>
-                  <TableColumn>TITLE</TableColumn>
-                  <TableColumn>LANDLORD</TableColumn>
-                  <TableColumn>PRICE</TableColumn>
-                  <TableColumn>STATUS</TableColumn>
-                  <TableColumn>ACTIONS</TableColumn>
-                </TableHeader>
-                <TableBody>
-                  {listings.map((listing) => (
-                    <TableRow key={listing._id}>
-                      <TableCell>
-                        <div>
-                          <div style={{ fontWeight: "bold" }}>{listing.title}</div>
-                          <div style={{ fontSize: "12px", color: "gray" }}>
-                            {listing.location?.general}
+        <Tabs selectedKey={activeTab} onSelectionChange={setActiveTab}>
+          <Tab key="properties" title="Properties">
+            <Card>
+              <CardBody>
+                <Table aria-label="Properties table">
+                  <TableHeader>
+                    <TableColumn>NAME</TableColumn>
+                    <TableColumn>LANDLORD</TableColumn>
+                    <TableColumn>PRICE</TableColumn>
+                    <TableColumn>STATUS</TableColumn>
+                    <TableColumn>ACTIONS</TableColumn>
+                  </TableHeader>
+                  <TableBody>
+                    {properties.map((property) => (
+                      <TableRow key={property.id}>
+                        <TableCell>{property.name}</TableCell>
+                        <TableCell>{property.landlord?.name || "Unknown"}</TableCell>
+                        <TableCell>K{property.price}</TableCell>
+                        <TableCell>
+                          <Chip color={property.approved ? "success" : "warning"} variant="flat">
+                            {property.approved ? "Approved" : "Pending"}
+                          </Chip>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button size="sm" color={property.approved ? "warning" : "success"} onClick={() => handlePropertyApproval(property.id, !property.approved)}>
+                              {property.approved ? "Unapprove" : "Approve"}
+                            </Button>
+                            <Button size="sm" color="danger" onClick={() => handleDeleteProperty(property.id)}>Delete</Button>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{listing.landlord?.name || "Unknown"}</TableCell>
-                      <TableCell>K{listing.price}/month</TableCell>
-                      <TableCell>
-                        <Chip
-                          color={listing.availability ? "success" : "danger"}
-                          variant="flat"
-                        >
-                          {listing.availability ? "Active" : "Inactive"}
-                        </Chip>
-                      </TableCell>
-                      <TableCell>
-                        <div style={{ display: "flex", gap: "5px" }}>
-                          <Button
-                            size="sm"
-                            color={listing.availability ? "warning" : "success"}
-                            onClick={() => handleListingStatusChange(listing._id, !listing.availability)}
-                          >
-                            {listing.availability ? "Deactivate" : "Activate"}
-                          </Button>
-                          <Button
-                            size="sm"
-                            color="danger"
-                            onClick={() => handleDeleteListing(listing._id)}
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardBody>
-          </Card>
-        </Tab>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardBody>
+            </Card>
+          </Tab>
 
-        <Tab key="users" title="User Management">
-          <Card>
-            <CardBody>
-              <Table aria-label="Users table">
-                <TableHeader>
-                  <TableColumn>NAME</TableColumn>
-                  <TableColumn>EMAIL</TableColumn>
-                  <TableColumn>ROLE</TableColumn>
-                  <TableColumn>STATUS</TableColumn>
-                  <TableColumn>ACTIONS</TableColumn>
-                </TableHeader>
-                <TableBody>
-                  {users.map((userData) => (
-                    <TableRow key={userData._id}>
-                      <TableCell>{userData.name}</TableCell>
-                      <TableCell>{userData.email}</TableCell>
-                      <TableCell>
-                        <Chip
-                          color={
-                            userData.role === "admin" ? "danger" :
-                            userData.role === "landlord" ? "warning" : "primary"
-                          }
-                          variant="flat"
-                        >
-                          {userData.role}
-                        </Chip>
-                      </TableCell>
-                      <TableCell>
-                        <Chip color="success" variant="flat">
-                          Active
-                        </Chip>
-                      </TableCell>
-                      <TableCell>
-                        <div style={{ display: "flex", gap: "5px" }}>
-                          {userData.role !== "admin" && (
-                            <>
-                              <Button
-                                size="sm"
-                                color="primary"
-                                onClick={() => handleUserStatusChange(userData._id,
-                                  userData.role === "landlord" ? "student" : "landlord"
-                                )}
-                              >
-                                {userData.role === "landlord" ? "Make Student" : "Make Landlord"}
+          <Tab key="users" title="Users">
+            <Card>
+              <CardBody>
+                <Table aria-label="Users table">
+                  <TableHeader>
+                    <TableColumn>NAME</TableColumn>
+                    <TableColumn>EMAIL</TableColumn>
+                    <TableColumn>ROLE</TableColumn>
+                    <TableColumn>ACTIONS</TableColumn>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((entry) => (
+                      <TableRow key={entry.id}>
+                        <TableCell>{entry.name}</TableCell>
+                        <TableCell>{entry.email}</TableCell>
+                        <TableCell>
+                          <Chip color={entry.role === "admin" ? "danger" : entry.role === "landlord" ? "warning" : "primary"} variant="flat">
+                            {entry.role}
+                          </Chip>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            {entry.role !== "admin" && (
+                              <Button size="sm" color="primary" onClick={() => handleUserRoleChange(entry.id, entry.role === "landlord" ? "student" : "landlord")}>
+                                {entry.role === "landlord" ? "Make Student" : "Make Landlord"}
                               </Button>
-                              <Button
-                                size="sm"
-                                color="danger"
-                                onClick={() => handleDeleteUser(userData._id)}
-                              >
-                                Delete
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardBody>
-          </Card>
-        </Tab>
-
-        <Tab key="analytics" title="Analytics">
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px" }}>
-            <Card>
-              <CardBody>
-                <h3>Platform Overview</h3>
-                <div style={{ marginTop: "20px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
-                    <span>Total Users:</span>
-                    <strong>{users.length}</strong>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
-                    <span>Students:</span>
-                    <strong>{users.filter(u => u.role === "student").length}</strong>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
-                    <span>Landlords:</span>
-                    <strong>{users.filter(u => u.role === "landlord").length}</strong>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
-                    <span>Admins:</span>
-                    <strong>{users.filter(u => u.role === "admin").length}</strong>
-                  </div>
-                </div>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardBody>
             </Card>
-
-            <Card>
-              <CardBody>
-                <h3>Listing Statistics</h3>
-                <div style={{ marginTop: "20px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
-                    <span>Total Listings:</span>
-                    <strong>{listings.length}</strong>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
-                    <span>Active Listings:</span>
-                    <strong>{listings.filter(l => l.availability).length}</strong>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
-                    <span>Inactive Listings:</span>
-                    <strong>{listings.filter(l => !l.availability).length}</strong>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
-                    <span>Average Price:</span>
-                    <strong>K{Math.round(listings.reduce((sum, l) => sum + l.price, 0) / listings.length) || 0}/month</strong>
-                  </div>
-                </div>
-              </CardBody>
-            </Card>
-
-            <Card>
-              <CardBody>
-                <h3>Recent Activity</h3>
-                <div style={{ marginTop: "20px" }}>
-                  <p style={{ color: "gray", fontStyle: "italic" }}>
-                    Activity tracking coming in next update...
-                  </p>
-                  <ul style={{ marginTop: "10px" }}>
-                    <li>• User registrations</li>
-                    <li>• New listings</li>
-                    <li>• Reviews submitted</li>
-                    <li>• Login activity</li>
-                  </ul>
-                </div>
-              </CardBody>
-            </Card>
-          </div>
-        </Tab>
-      </Tabs>
+          </Tab>
+        </Tabs>
+      </div>
     </div>
   );
 }

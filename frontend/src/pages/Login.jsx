@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Input, Button } from "@nextui-org/react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useAuthActions } from "../hooks/useAuth.ts";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -9,6 +9,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { login } = useAuthActions();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -16,19 +17,10 @@ export default function Login() {
     setError("");
 
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/login", {
-        email,
-        password
-      });
-
-      // Store token in localStorage
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-
-      // Redirect to home
+      await login(email, password);
       navigate("/");
-    } catch (error) {
-      setError(error.response?.data?.message || "Login failed");
+    } catch (err) {
+      setError(err?.message || "Login failed");
     } finally {
       setLoading(false);
     }

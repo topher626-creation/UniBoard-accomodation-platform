@@ -4,7 +4,7 @@ const User = require("../models/User");
 const auth = require("../middleware/auth");
 
 const router = express.Router();
-const ALLOWED_ROLES = ["student", "landlord", "admin"];
+const SELF_REGISTER_ROLES = ["student", "landlord"];
 
 const isValidEmail = (value = "") =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).toLowerCase());
@@ -34,8 +34,8 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "Password must be at least 8 characters long" });
     }
 
-    if (!ALLOWED_ROLES.includes(normalizedRole)) {
-      return res.status(400).json({ message: "Invalid user role" });
+    if (!SELF_REGISTER_ROLES.includes(normalizedRole)) {
+      return res.status(400).json({ message: "Invalid registration role" });
     }
 
     // Check if user exists

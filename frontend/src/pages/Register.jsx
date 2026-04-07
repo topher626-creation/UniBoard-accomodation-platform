@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Input, Button, Select, SelectItem } from "@nextui-org/react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useAuthActions } from "../hooks/useAuth.ts";
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -14,6 +14,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { register } = useAuthActions();
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -25,16 +26,15 @@ export default function Register() {
     setError("");
 
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/register", formData);
-
-      // Store token in localStorage
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-
-      // Redirect to home
+      await register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role
+      });
       navigate("/");
-    } catch (error) {
-      setError(error.response?.data?.message || "Registration failed");
+    } catch (err) {
+      setError(err?.message || "Registration failed");
     } finally {
       setLoading(false);
     }
@@ -118,7 +118,7 @@ export default function Register() {
               <Select
                 placeholder="Select your role"
                 value={formData.role}
-                onChange={(value) => handleChange("role", value)}
+                onChange={(e) => handleChange("role", e.target.value)}
                 className="input-primary"
                 size="lg"
                 startContent={<span className="text-gray-400">🎓</span>}

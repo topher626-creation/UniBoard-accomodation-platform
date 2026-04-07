@@ -152,8 +152,8 @@ router.get("/:id", async (req, res) => {
 // Create property (landlord only)
 router.post("/", auth, async (req, res) => {
   try {
-    if (req.user.role !== 'landlord') {
-      return res.status(403).json({ message: "Only landlords can create properties" });
+    if (req.user.role !== "landlord" && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Only landlords and admins can create properties" });
     }
 
     const {
@@ -222,6 +222,10 @@ router.post("/", auth, async (req, res) => {
 // Update property (landlord only)
 router.put("/:id", auth, async (req, res) => {
   try {
+    if (req.user.role !== "landlord" && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Not authorized to update properties" });
+    }
+
     const property = await Property.findByPk(req.params.id);
 
     if (!property) {
@@ -299,6 +303,10 @@ router.put("/:id", auth, async (req, res) => {
 // Delete property (landlord or admin)
 router.delete("/:id", auth, async (req, res) => {
   try {
+    if (req.user.role !== "landlord" && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Not authorized to delete properties" });
+    }
+
     const property = await Property.findByPk(req.params.id);
 
     if (!property) {

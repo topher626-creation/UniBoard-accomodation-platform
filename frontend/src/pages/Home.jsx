@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Button, Card, CardBody, Input } from "@nextui-org/react";
 import PropertyCard from "../components/PropertyCard";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "../stores/authStore.ts";
+import { apiClient } from "../lib/api.ts";
 
 const AREAS = ["Garneton", "Zambia Compound", "Halawa", "Pathfinder", "Big Brothers"];
 
@@ -12,10 +13,9 @@ export default function Home() {
   const [filteredProperties, setFilteredProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [user, setUser] = useState(null);
+  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
-    checkAuth();
     fetchProperties();
   }, []);
 
@@ -23,27 +23,16 @@ export default function Home() {
     applyFilters();
   }, [properties, searchTerm]);
 
-  const checkAuth = () => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-  };
-
   const fetchProperties = async (area = "") => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-      let url = "http://localhost:5000/api/properties";
+      let url = "/properties";
       if (area) {
-        url += `?area=${encodeURIComponent(area)}`;
+        url += `?search=${encodeURIComponent(area)}`;
       }
 
-      const response = await axios.get(url, { headers });
-      setProperties(response.data);
+      const response = await apiClient.get(url);
+      setProperties(response);
     } catch (error) {
       console.error("Error fetching listings:", error);
     } finally {
@@ -82,8 +71,7 @@ export default function Home() {
   };
 
   const handlePropertyClick = (propertyId) => {
-    const token = localStorage.getItem("token");
-    if (!token) {
+    if (!user) {
       navigate("/login");
       return;
     }
@@ -103,7 +91,7 @@ export default function Home() {
       {/* Main Content */}
       <div className="relative z-10">
         {/* Hero Section */}
-        <section className="pt-16 pb-20 px-4">
+        <section className="pt-16 pb-20 px-4 sm:px-6 lg:px-8">
           <div className="max-w-6xl mx-auto text-center">
             <div className="mb-12">
               <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6 leading-tight">
@@ -147,34 +135,34 @@ export default function Home() {
         </section>
 
         {/* Search Section */}
-        <section className="pb-16 px-4">
+        <section className="pb-16 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto">
-            <Card className="bg-white/90 backdrop-blur-sm shadow-2xl border-0 rounded-3xl overflow-hidden">
-              <CardBody className="p-8 md:p-12">
-                <div className="text-center mb-8">
-                  <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <Card className="bg-white/90 backdrop-blur-sm shadow-2xl border-0 rounded-2xl sm:rounded-3xl overflow-hidden">
+              <CardBody className="p-4 sm:p-8 md:p-12">
+                <div className="text-center mb-6 sm:mb-8">
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 sm:mb-4">
                     Search Properties
                   </h2>
-                  <p className="text-gray-600 text-lg">
+                  <p className="text-gray-600 text-sm sm:text-lg">
                     Find your ideal accommodation in seconds
                   </p>
                 </div>
 
-                <div className="flex flex-col md:flex-row gap-4 mb-6">
+                <div className="flex flex-col md:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
                   <div className="flex-1 relative">
                     <Input
                       type="text"
-                      placeholder="Search by location, compound name, or property name..."
+                      placeholder="Search location, compound..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       onKeyPress={handleKeyPress}
-                      className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl transition-colors duration-200 text-lg"
+                      className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg sm:rounded-xl transition-colors duration-200 text-sm sm:text-lg"
                       size="lg"
-                      startContent={<span className="text-gray-400 text-xl">🔍</span>}
+                      startContent={<span className="text-gray-400 text-lg">🔍</span>}
                     />
                   </div>
                   <Button
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-lg"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 sm:px-8 py-3 sm:py-4 rounded-lg sm:rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-sm sm:text-lg"
                     size="lg"
                     onClick={handleSearch}
                   >
@@ -183,10 +171,10 @@ export default function Home() {
                 </div>
 
                 {searchTerm && (
-                  <div className="text-center mb-6">
+                  <div className="text-center mb-4 sm:mb-6">
                     <button
                       onClick={handleClearSearch}
-                      className="text-blue-600 hover:text-blue-700 font-medium underline transition-colors text-sm"
+                      className="text-blue-600 hover:text-blue-700 font-medium underline transition-colors text-xs sm:text-sm"
                     >
                       ✕ Clear search
                     </button>
@@ -194,12 +182,12 @@ export default function Home() {
                 )}
 
                 {/* Popular Searches */}
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6">
-                  <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl sm:rounded-2xl p-4 sm:p-6">
+                  <div className="flex items-center justify-center gap-2 mb-2 sm:mb-3">
                     <span className="text-blue-600">💡</span>
-                    <span className="font-semibold text-gray-700">Popular searches:</span>
+                    <span className="font-semibold text-gray-700 text-sm sm:text-base">Popular searches:</span>
                   </div>
-                  <div className="flex flex-wrap justify-center gap-3">
+                  <div className="flex flex-wrap justify-center gap-2">
                     {["Kitwe", "Lusaka", "Mbachi", "Jilafu", "Garneton", "Pathfinder"].map((location) => (
                       <button
                         key={location}
@@ -207,7 +195,7 @@ export default function Home() {
                           setSearchTerm(location);
                           fetchProperties(location);
                         }}
-                        className="bg-white hover:bg-blue-50 text-gray-700 hover:text-blue-700 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border border-gray-200 hover:border-blue-300"
+                        className="bg-white hover:bg-blue-50 text-gray-700 hover:text-blue-700 px-3 sm:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 border border-gray-200 hover:border-blue-300"
                       >
                         {location}
                       </button>
@@ -220,21 +208,21 @@ export default function Home() {
         </section>
 
         {/* Results Section */}
-        <section className="pb-20 px-4">
+        <section className="pb-20 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-8 sm:mb-10">
               <div>
-                <h2 className="text-4xl font-bold text-gray-900 mb-2">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-1 sm:mb-2">
                   {searchTerm ? `Results for "${searchTerm}"` : "All Properties"}
                 </h2>
-                <p className="text-gray-600 text-lg">
+                <p className="text-gray-600 text-sm sm:text-lg">
                   {filteredProperties.length} {filteredProperties.length === 1 ? "property" : "properties"} found
                 </p>
               </div>
 
               {user?.role === 'landlord' && (
                 <Button
-                  className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+                  className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl w-full sm:w-auto"
                   onClick={() => navigate("/create-listing")}
                 >
                   <span className="mr-2">➕</span>
@@ -296,7 +284,7 @@ export default function Home() {
                 </Card>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
                 {filteredProperties.map((property) => (
                   <div
                     key={property.id}

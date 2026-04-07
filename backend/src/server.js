@@ -8,6 +8,10 @@ require("./models");
 
 const app = express();
 
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET is required. Add it to your environment variables.");
+}
+
 // Connect to MySQL
 connectDB();
 

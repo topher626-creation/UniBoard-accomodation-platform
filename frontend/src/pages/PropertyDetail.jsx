@@ -1,40 +1,29 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { apiClient } from "../lib/api.ts";
+import { useAuthStore } from "../stores/authStore.ts";
 
 export default function PropertyDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
+  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
-    // CHECK AUTH GATE FIRST
-    checkAuthAndFetchDetails();
-  }, [id]);
-
-  const checkAuthAndFetchDetails = () => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-
-    // REDIRECT to login if not authenticated
-    if (!token || !userData) {
+    if (!user) {
       navigate("/login");
       return;
     }
 
-    // User is authenticated, fetch property details
-    setUser(JSON.parse(userData));
-    fetchPropertyDetails(token);
-  };
+    fetchPropertyDetails();
+  }, [id, user]);
 
-  const fetchPropertyDetails = async (token) => {
+  const fetchPropertyDetails = async () => {
     try {
       setLoading(true);
-      const headers = { Authorization: `Bearer ${token}` };
-      const response = await axios.get(`http://localhost:5000/api/properties/${id}`, { headers });
-      setProperty(response.data);
+      const response = await apiClient.get(`/properties/${id}`);
+      setProperty(response);
     } catch (error) {
       console.error("Error fetching property details:", error);
       navigate("/");

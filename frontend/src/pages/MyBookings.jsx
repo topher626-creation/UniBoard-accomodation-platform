@@ -1,43 +1,30 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Card, CardBody, Chip, Modal, ModalContent, ModalHeader, ModalBody, useDisclosure } from "@nextui-org/react";
-import axios from "axios";
+import { apiClient } from "../lib/api.ts";
+import { useAuthStore } from "../stores/authStore.ts";
 
 export default function MyBookings() {
   const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [cancelingId, setCancelingId] = useState(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   useEffect(() => {
-    checkAuth();
-    fetchBookings();
-  }, []);
-
-  const checkAuth = () => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-
-    if (!token) {
+    if (!user) {
       navigate("/login");
       return;
     }
-
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-  };
+    fetchBookings();
+  }, [user]);
 
   const fetchBookings = async () => {
     try {
-      const response = await axios.get(
-        "http://localhost:5000/api/bookings/user/my-bookings",
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-      );
-      setBookings(response.data);
+      const response = await apiClient.get("/bookings/user/my-bookings");
+      setBookings(response);
     } catch (error) {
       console.error("Error fetching bookings:", error);
     } finally {
@@ -57,11 +44,7 @@ export default function MyBookings() {
 
     setCancelingId(bookingId);
     try {
-      await axios.post(
-        `http://localhost:5000/api/bookings/${bookingId}/cancel`,
-        {},
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-      );
+      await apiClient.post(`/bookings/${bookingId}/cancel`, {});
       alert("Booking cancelled successfully");
       fetchBookings();
     } catch (error) {

@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { Input, Button, Textarea, Select, SelectItem, Card, CardBody, Checkbox } from "@nextui-org/react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { apiClient } from "../lib/api.ts";
+import { useAuthStore } from "../stores/authStore.ts";
 
 export default function CreateProperty() {
-  const [user, setUser] = useState(null);
+  const user = useAuthStore((state) => state.user);
   const [loading, setLoading] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
@@ -43,29 +45,21 @@ export default function CreateProperty() {
 
   const checkAuth = () => {
     const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-
-    if (!token || !userData) {
+    if (!token || !user) {
       navigate("/login");
       return;
     }
 
-    const parsedUser = JSON.parse(userData);
-    if (parsedUser.role !== "landlord" && parsedUser.role !== "admin") {
+    if (user.role !== "landlord" && user.role !== "admin") {
       setError("Only landlords can create properties");
       return;
     }
-
-    setUser(parsedUser);
   };
 
   const fetchCompounds = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:5000/api/compounds", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setCompounds(response.data);
+      const response = await apiClient.get("/compounds");
+      setCompounds(response);
     } catch (error) {
       console.error("Error fetching compounds:", error);
     }
@@ -73,11 +67,8 @@ export default function CreateProperty() {
 
   const fetchBuildings = async (compoundId) => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`http://localhost:5000/api/buildings/compound/${compoundId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setBuildings(response.data);
+      const response = await apiClient.get(`/buildings/compound/${compoundId}`);
+      setBuildings(response);
     } catch (error) {
       console.error("Error fetching buildings:", error);
     }
@@ -92,7 +83,7 @@ export default function CreateProperty() {
     }));
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
     const currentImageCount = formData.images.length;
     const newImageCount = files.length;
@@ -102,13 +93,40 @@ export default function CreateProperty() {
       return;
     }
 
-    // In a real app, you'd upload to Cloudinary here
-    // For now, just store file URLs or base64
-    const imageUrls = files.map(file => URL.createObjectURL(file));
-    setFormData(prev => ({
-      ...prev,
-      images: [...prev.images, ...imageUrls]
-    }));
+    try {
+      setUploadingImages(true);
+      const uploadedUrls = await Promise.all(
+        files.map(async (file) => {
+          const body = new FormData();
+          body.append("image", file);
+
+          const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/upload`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`
+            },
+            body
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to upload one or more images");
+          }
+
+          const data = await response.json();
+          return data.url;
+        })
+      );
+
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images, ...uploadedUrls]
+      }));
+    } catch (uploadError) {
+      setError(uploadError?.message || "Image upload failed");
+    } finally {
+      setUploadingImages(false);
+      e.target.value = "";
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -118,8 +136,6 @@ export default function CreateProperty() {
     setSuccess("");
 
     try {
-      const token = localStorage.getItem("token");
-
       const propertyData = {
         ...formData,
         building_id: selectedBuilding,
@@ -127,9 +143,7 @@ export default function CreateProperty() {
         total_beds: parseInt(formData.total_beds)
       };
 
-      const response = await axios.post("http://localhost:5000/api/properties", propertyData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await apiClient.post("/properties", propertyData);
 
       setSuccess("Property created successfully!");
       setTimeout(() => navigate("/"), 2000);
@@ -143,7 +157,7 @@ export default function CreateProperty() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Create New Property</h1>
@@ -306,11 +320,12 @@ export default function CreateProperty() {
                       accept="image/*"
                       onChange={handleImageUpload}
                       className="w-full"
-                      disabled={formData.images.length >= 8}
+                      disabled={formData.images.length >= 8 || uploadingImages}
                     />
                     <p className="text-sm text-gray-600">
                       Upload up to 8 images ({formData.images.length}/8 selected)
                     </p>
+                    {uploadingImages && <p className="text-sm text-blue-600">Uploading images...</p>}
 
                     {formData.images.length > 0 && (
                       <div className="grid grid-cols-3 gap-2">
