@@ -7,6 +7,7 @@ const Building = require('./Building');
 const Property = require('./Property');
 const PropertyImage = require('./PropertyImage');
 const PropertyFeature = require('./PropertyFeature');
+const Booking = require('./Booking');
 
 // Define associations
 User.hasMany(Compound, { foreignKey: 'landlord_id', as: 'compounds' });
@@ -27,6 +28,12 @@ PropertyImage.belongsTo(Property, { foreignKey: 'property_id', as: 'property' })
 Property.hasMany(PropertyFeature, { foreignKey: 'property_id', as: 'features' });
 PropertyFeature.belongsTo(Property, { foreignKey: 'property_id', as: 'property' });
 
+User.hasMany(Booking, { foreignKey: "user_id", as: "bookings" });
+Booking.belongsTo(User, { foreignKey: "user_id", as: "student" });
+
+Property.hasMany(Booking, { foreignKey: "property_id", as: "bookings" });
+Booking.belongsTo(Property, { foreignKey: "property_id", as: "property" });
+
 // Sync database (only in development)
 if (process.env.NODE_ENV !== 'production') {
   sequelize.sync({ force: true }).then(() => {
@@ -43,5 +50,6 @@ module.exports = {
   Building,
   Property,
   PropertyImage,
-  PropertyFeature
+  PropertyFeature,
+  Booking
 };

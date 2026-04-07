@@ -27,6 +27,7 @@ app.use("/api/compounds", require("./routes/compounds"));
 app.use("/api/buildings", require("./routes/buildings"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/upload", require("./routes/uploadRoute"));
+app.use("/api/bookings", require("./routes/bookings"));
 
 // Basic route
 app.get("/", (req, res) => {

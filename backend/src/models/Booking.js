@@ -1,52 +1,57 @@
-const mongoose = require("mongoose");
+const { DataTypes } = require("sequelize");
+const { sequelize } = require("../config/db");
 
-const bookingSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true
+const Booking = sequelize.define("Booking", {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
   },
-  listing: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Listing",
-    required: true
+  user_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: "users",
+      key: "id"
+    }
+  },
+  property_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: "properties",
+      key: "id"
+    }
   },
   status: {
-    type: String,
-    enum: ["PENDING", "CONFIRMED", "REJECTED"],
-    default: "PENDING"
+    type: DataTypes.ENUM("PENDING", "CONFIRMED", "REJECTED", "CANCELLED"),
+    defaultValue: "PENDING"
   },
-  paymentProofUrl: {
-    type: String, // Image URL from Cloudinary
-    required: false
+  payment_proof_url: {
+    type: DataTypes.STRING(500),
+    allowNull: true
   },
-  paymentProofType: {
-    type: String,
-    enum: ["screenshot", "transaction_id", "receipt"],
-    required: false
+  payment_notes: {
+    type: DataTypes.TEXT,
+    allowNull: true
   },
-  paymentNotes: {
-    type: String,
-    required: false
+  rejection_reason: {
+    type: DataTypes.STRING(255),
+    allowNull: true
   },
-  rejectionReason: {
-    type: String,
-    required: false // reason why landlord rejected the booking
+  confirmed_at: {
+    type: DataTypes.DATE,
+    allowNull: true
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  confirmedAt: {
-    type: Date,
-    required: false
-  },
-  rejectedAt: {
-    type: Date,
-    required: false
+  rejected_at: {
+    type: DataTypes.DATE,
+    allowNull: true
   }
 }, {
-  timestamps: true
+  tableName: "bookings",
+  timestamps: true,
+  createdAt: "created_at",
+  updatedAt: "updated_at"
 });
 
-module.exports = mongoose.model("Booking", bookingSchema);
+module.exports = Booking;

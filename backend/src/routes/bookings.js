@@ -1,268 +1,112 @@
 const express = require("express");
-const Booking = require("../models/Booking");
-const Listing = require("../models/Listing");
-const User = require("../models/User");
+const { Booking, Property, PropertyImage, User } = require("../models");
 const auth = require("../middleware/auth");
 
 const router = express.Router();
 
-// Request a booking (student initiates)
 router.post("/request", auth, async (req, res) => {
   try {
-    const { listingId } = req.body;
-
-    // Validate listing exists and is available
-    const listing = await Listing.findById(listingId);
-    if (!listing) {
-      return res.status(404).json({ message: "Listing not found" });
+    if (req.user.role !== "student" && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Only students can request bookings" });
     }
 
-    if (!listing.availability) {
-      return res.status(400).json({ message: "Property is no longer available" });
+    const { propertyId } = req.body;
+    if (!propertyId) {
+      return res.status(400).json({ message: "propertyId is required" });
     }
 
-    // Check if user already has a pending/confirmed booking for this listing
-    const existingBooking = await Booking.findOne({
-      user: req.user._id,
-      listing: listingId,
-      status: { $in: ["PENDING", "CONFIRMED"] }
+    const property = await Property.findByPk(propertyId);
+    if (!property || !property.approved) {
+      return res.status(404).json({ message: "Property not available" });
+    }
+
+    const existing = await Booking.findOne({
+      where: {
+        user_id: req.user.id,
+        property_id: propertyId,
+        status: "PENDING"
+      }
     });
 
-    if (existingBooking) {
-      return res.status(400).json({ message: "You already have an active booking request for this property" });
+    if (existing) {
+      return res.status(400).json({ message: "You already have a pending request for this property" });
     }
 
-    // Create booking request
-    const booking = new Booking({
-      user: req.user._id,
-      listing: listingId,
+    const booking = await Booking.create({
+      user_id: req.user.id,
+      property_id: propertyId,
       status: "PENDING"
     });
 
-    await booking.save();
-    await booking.populate("listing", "title price landlordPhoneNumber paymentInstructions");
-    await booking.populate("user", "name email phone");
-
-    res.status(201).json({
-      success: true,
-      message: "Booking request created successfully",
-      booking
-    });
+    return res.status(201).json({ message: "Booking request created", bookingId: booking.id });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: "Failed to create booking request" });
   }
 });
 
-// Upload payment proof
-router.post("/:bookingId/upload-proof", auth, async (req, res) => {
-  try {
-    const { bookingId } = req.params;
-    const { paymentProofUrl, paymentProofType, paymentNotes } = req.body;
-
-    const booking = await Booking.findById(bookingId);
-    if (!booking) {
-      return res.status(404).json({ message: "Booking not found" });
-    }
-
-    // Check authorization - only booking owner
-    if (booking.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Not authorized" });
-    }
-
-    if (booking.status !== "PENDING") {
-      return res.status(400).json({ message: "Can only upload proof for pending bookings" });
-    }
-
-    // Update booking with payment proof
-    booking.paymentProofUrl = paymentProofUrl;
-    booking.paymentProofType = paymentProofType;
-    booking.paymentNotes = paymentNotes || "";
-
-    await booking.save();
-    await booking.populate("listing", "title price");
-    await booking.populate("user", "name email phone");
-
-    res.json({
-      success: true,
-      message: "Payment proof uploaded successfully. Waiting for landlord confirmation.",
-      booking
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// Landlord confirms booking
-router.post("/:bookingId/confirm", auth, async (req, res) => {
-  try {
-    const { bookingId } = req.params;
-
-    const booking = await Booking.findById(bookingId).populate("listing");
-    if (!booking) {
-      return res.status(404).json({ message: "Booking not found" });
-    }
-
-    // Check authorization - only landlord who owns the property
-    if (booking.listing.landlord.toString() !== req.user._id.toString() && req.user.role !== "admin") {
-      return res.status(403).json({ message: "Not authorized to confirm this booking" });
-    }
-
-    if (booking.status !== "PENDING") {
-      return res.status(400).json({ message: "Can only confirm pending bookings" });
-    }
-
-    // Update booking status
-    booking.status = "CONFIRMED";
-    booking.confirmedAt = new Date();
-    await booking.save();
-
-    // Mark listing as unavailable
-    booking.listing.availability = false;
-    await booking.listing.save();
-
-    await booking.populate("listing", "title price");
-    await booking.populate("user", "name email phone");
-
-    res.json({
-      success: true,
-      message: "Booking confirmed successfully",
-      booking
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// Landlord rejects booking
-router.post("/:bookingId/reject", auth, async (req, res) => {
-  try {
-    const { bookingId } = req.params;
-    const { rejectionReason } = req.body;
-
-    const booking = await Booking.findById(bookingId).populate("listing");
-    if (!booking) {
-      return res.status(404).json({ message: "Booking not found" });
-    }
-
-    // Check authorization - only landlord who owns the property
-    if (booking.listing.landlord.toString() !== req.user._id.toString() && req.user.role !== "admin") {
-      return res.status(403).json({ message: "Not authorized to reject this booking" });
-    }
-
-    if (booking.status !== "PENDING") {
-      return res.status(400).json({ message: "Can only reject pending bookings" });
-    }
-
-    // Update booking status
-    booking.status = "REJECTED";
-    booking.rejectionReason = rejectionReason || "No reason provided";
-    booking.rejectedAt = new Date();
-    await booking.save();
-
-    await booking.populate("listing", "title price");
-    await booking.populate("user", "name email phone");
-
-    res.json({
-      success: true,
-      message: "Booking rejected",
-      booking
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// Get user's bookings (student view)
 router.get("/user/my-bookings", auth, async (req, res) => {
   try {
-    const bookings = await Booking.find({ user: req.user._id })
-      .populate("listing", "title price images location landlordPhoneNumber paymentInstructions")
-      .sort({ createdAt: -1 });
+    const bookings = await Booking.findAll({
+      where: { user_id: req.user.id },
+      include: [
+        {
+          model: Property,
+          as: "property",
+          include: [
+            { model: PropertyImage, as: "images", limit: 1 },
+            { model: User, as: "landlord", attributes: ["name", "phone"] }
+          ]
+        }
+      ],
+      order: [["created_at", "DESC"]]
+    });
 
-    res.json(bookings);
+    const formatted = bookings.map((booking) => ({
+      _id: String(booking.id),
+      id: booking.id,
+      status: booking.status,
+      paymentProofUrl: booking.payment_proof_url,
+      paymentNotes: booking.payment_notes,
+      rejectionReason: booking.rejection_reason,
+      createdAt: booking.created_at,
+      listing: booking.property
+        ? {
+            id: booking.property.id,
+            title: booking.property.name,
+            price: booking.property.price,
+            images: booking.property.images?.map((image) => image.image_url) || [],
+            location: { general: booking.property.location, exact: booking.property.location },
+            landlordPhoneNumber: booking.property.landlord?.phone || booking.property.phone,
+            paymentInstructions: "Contact landlord to confirm payment instructions."
+          }
+        : null
+    }));
+
+    return res.json(formatted);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: "Failed to fetch bookings" });
   }
 });
 
-// Get bookings for a property (landlord view)
-router.get("/property/:propertyId", auth, async (req, res) => {
-  try {
-    const { propertyId } = req.params;
-
-    const listing = await Listing.findById(propertyId);
-    if (!listing) {
-      return res.status(404).json({ message: "Property not found" });
-    }
-
-    // Check authorization - only landlord owner
-    if (listing.landlord.toString() !== req.user._id.toString() && req.user.role !== "admin") {
-      return res.status(403).json({ message: "Not authorized" });
-    }
-
-    const bookings = await Booking.find({ listing: propertyId })
-      .populate("user", "name email phone")
-      .sort({ createdAt: -1 });
-
-    res.json(bookings);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// Get single booking
-router.get("/:id", auth, async (req, res) => {
-  try {
-    const booking = await Booking.findById(req.params.id)
-      .populate("listing", "title price images location landlordPhoneNumber paymentInstructions landlord")
-      .populate("user", "name email phone");
-
-    if (!booking) {
-      return res.status(404).json({ message: "Booking not found" });
-    }
-
-    // Check authorization - booking owner, landlord, or admin
-    const isOwner = booking.user._id.toString() === req.user._id.toString();
-    const isLandlord = booking.listing.landlord._id.toString() === req.user._id.toString();
-    const isAdmin = req.user.role === "admin";
-
-    if (!isOwner && !isLandlord && !isAdmin) {
-      return res.status(403).json({ message: "Not authorized" });
-    }
-
-    res.json(booking);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// Cancel booking (student only, before confirmation)
 router.post("/:id/cancel", auth, async (req, res) => {
   try {
-    const booking = await Booking.findById(req.params.id);
-
+    const booking = await Booking.findByPk(req.params.id);
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
     }
 
-    // Check authorization
-    if (booking.user.toString() !== req.user._id.toString()) {
+    if (booking.user_id !== req.user.id && req.user.role !== "admin") {
       return res.status(403).json({ message: "Not authorized" });
     }
 
     if (booking.status !== "PENDING") {
-      return res.status(400).json({ message: "Can only cancel pending bookings" });
+      return res.status(400).json({ message: "Only pending bookings can be cancelled" });
     }
 
-    // Delete booking
-    await Booking.findByIdAndDelete(req.params.id);
-
-    res.json({
-      success: true,
-      message: "Booking request cancelled"
-    });
+    await booking.update({ status: "CANCELLED" });
+    return res.json({ success: true, message: "Booking request cancelled" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: "Failed to cancel booking" });
   }
 });
 
