@@ -230,21 +230,59 @@ router.post("/", auth, async (req, res) => {
       whatsapp,
       room_type,
       total_beds,
+      occupied_beds,
       building_id,
       features,
       images
     } = req.body;
 
+    const allowedRoomTypes = ["single", "bedsitter", "self-contained"];
+    const parsedPrice = Number(price);
+    const parsedTotalBeds = Number(total_beds);
+    const parsedOccupiedBeds = occupied_beds === undefined ? 0 : Number(occupied_beds);
+
+    if (!name || !description || !location || !phone || !whatsapp || !room_type || !building_id) {
+      return res.status(400).json({ message: "Missing required listing fields" });
+    }
+    if (!allowedRoomTypes.includes(room_type)) {
+      return res.status(400).json({ message: "Invalid room type" });
+    }
+    if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
+      return res.status(400).json({ message: "Price must be a valid non-negative number" });
+    }
+    if (!Number.isInteger(parsedTotalBeds) || parsedTotalBeds < 1) {
+      return res.status(400).json({ message: "Total beds must be an integer >= 1" });
+    }
+    if (!Number.isInteger(parsedOccupiedBeds) || parsedOccupiedBeds < 0 || parsedOccupiedBeds > parsedTotalBeds) {
+      return res.status(400).json({ message: "Occupied beds must be between 0 and total beds" });
+    }
+    if (features && (!Array.isArray(features) || features.length > 6)) {
+      return res.status(400).json({ message: "Features must be an array with a maximum of 6 items" });
+    }
+    if (images && (!Array.isArray(images) || images.length > 8)) {
+      return res.status(400).json({ message: "Maximum 8 images allowed per listing" });
+    }
+
+    const building = await Building.findByPk(building_id, {
+      include: [{ model: Compound, as: "compound" }]
+    });
+    if (!building) {
+      return res.status(404).json({ message: "Building not found" });
+    }
+    if (req.user.role !== "admin" && building.compound?.landlord_id !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized for this building" });
+    }
+
     const property = await Property.create({
       name,
       description,
       location,
-      price,
+      price: parsedPrice,
       phone,
       whatsapp,
       room_type,
-      total_beds: total_beds || 1,
-      occupied_beds: 0,
+      total_beds: parsedTotalBeds,
+      occupied_beds: parsedOccupiedBeds,
       building_id,
       landlord_id: req.user.id
     });
@@ -263,7 +301,7 @@ router.post("/", auth, async (req, res) => {
     // Add images
     if (images && Array.isArray(images)) {
       if (images.length > 8) {
-        return res.status(400).json({ message: "Maximum 8 images allowed per property" });
+        return res.status(400).json({ message: "Maximum 8 images allowed per listing" });
       }
       const imagePromises = images.map(image_url =>
         PropertyImage.create({
@@ -275,7 +313,7 @@ router.post("/", auth, async (req, res) => {
     }
 
     res.status(201).json({
-      message: "Property created successfully",
+      message: "Listing created successfully",
       property: { id: property.id, name: property.name }
     });
   } catch (error) {

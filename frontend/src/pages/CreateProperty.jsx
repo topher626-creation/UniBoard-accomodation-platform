@@ -10,6 +10,7 @@ export default function CreateProperty() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [touched, setTouched] = useState({});
   const navigate = useNavigate();
 
   const [compounds, setCompounds] = useState([]);
@@ -26,11 +27,30 @@ export default function CreateProperty() {
     whatsapp: "",
     room_type: "single",
     total_beds: 1,
+    occupied_beds: 0,
     features: [],
     images: []
   });
 
   const availableFeatures = ["water", "electricity", "wifi", "security", "kitchen", "toilet"];
+  const totalBedsNum = Number(formData.total_beds);
+  const occupiedBedsNum = Number(formData.occupied_beds);
+  const hasBedValidationError =
+    Number.isNaN(totalBedsNum) ||
+    Number.isNaN(occupiedBedsNum) ||
+    totalBedsNum < 1 ||
+    occupiedBedsNum < 0 ||
+    occupiedBedsNum > totalBedsNum;
+  const isFormValid =
+    Boolean(formData.name.trim()) &&
+    Boolean(formData.description.trim()) &&
+    Boolean(formData.location.trim()) &&
+    Boolean(formData.price) &&
+    Boolean(formData.phone.trim()) &&
+    Boolean(formData.whatsapp.trim()) &&
+    Boolean(selectedBuilding) &&
+    !hasBedValidationError;
+  const showFieldError = (fieldKey, condition) => touched[fieldKey] && condition;
 
   useEffect(() => {
     checkAuth();
@@ -131,16 +151,49 @@ export default function CreateProperty() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setTouched({
+      name: true,
+      description: true,
+      location: true,
+      price: true,
+      phone: true,
+      whatsapp: true,
+      building: true,
+      total_beds: true,
+      occupied_beds: true
+    });
     setLoading(true);
     setError("");
     setSuccess("");
 
     try {
+      const totalBeds = parseInt(formData.total_beds, 10);
+      const occupiedBeds = parseInt(formData.occupied_beds, 10);
+
+      if (!selectedBuilding) {
+        setError("Please select a building before creating a listing.");
+        setLoading(false);
+        return;
+      }
+
+      if (Number.isNaN(totalBeds) || totalBeds < 1) {
+        setError("Total beds must be at least 1.");
+        setLoading(false);
+        return;
+      }
+
+      if (Number.isNaN(occupiedBeds) || occupiedBeds < 0 || occupiedBeds > totalBeds) {
+        setError("Occupied beds must be between 0 and total beds.");
+        setLoading(false);
+        return;
+      }
+
       const propertyData = {
         ...formData,
         building_id: selectedBuilding,
         price: parseFloat(formData.price),
-        total_beds: parseInt(formData.total_beds)
+        total_beds: totalBeds,
+        occupied_beds: occupiedBeds
       };
 
       await apiClient.post("/properties", propertyData);
@@ -160,8 +213,8 @@ export default function CreateProperty() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Create New Property</h1>
-          <p className="text-gray-600 mt-2">Add a new property to your portfolio</p>
+          <h1 className="text-3xl font-bold text-gray-900">Create New Listing</h1>
+          <p className="text-gray-600 mt-2">Add a building-linked listing with availability and contact details</p>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -178,6 +231,9 @@ export default function CreateProperty() {
                       placeholder="e.g., Room 101"
                       value={formData.name}
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      onBlur={() => setTouched((prev) => ({ ...prev, name: true }))}
+                      isInvalid={showFieldError("name", !formData.name.trim())}
+                      errorMessage={showFieldError("name", !formData.name.trim()) ? "Listing name is required." : undefined}
                       required
                     />
 
@@ -186,6 +242,9 @@ export default function CreateProperty() {
                       placeholder="Describe the property..."
                       value={formData.description}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      onBlur={() => setTouched((prev) => ({ ...prev, description: true }))}
+                      isInvalid={showFieldError("description", !formData.description.trim())}
+                      errorMessage={showFieldError("description", !formData.description.trim()) ? "Description is required." : undefined}
                       required
                     />
 
@@ -194,6 +253,9 @@ export default function CreateProperty() {
                       placeholder="e.g., Near University"
                       value={formData.location}
                       onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                      onBlur={() => setTouched((prev) => ({ ...prev, location: true }))}
+                      isInvalid={showFieldError("location", !formData.location.trim())}
+                      errorMessage={showFieldError("location", !formData.location.trim()) ? "Location is required." : undefined}
                       required
                     />
 
@@ -203,6 +265,9 @@ export default function CreateProperty() {
                         label="Price (K/month)"
                         value={formData.price}
                         onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                        onBlur={() => setTouched((prev) => ({ ...prev, price: true }))}
+                        isInvalid={showFieldError("price", !formData.price || Number(formData.price) < 0)}
+                        errorMessage={showFieldError("price", !formData.price || Number(formData.price) < 0) ? "Enter a valid price." : undefined}
                         required
                       />
 
@@ -211,9 +276,31 @@ export default function CreateProperty() {
                         label="Total Beds"
                         value={formData.total_beds}
                         onChange={(e) => setFormData(prev => ({ ...prev, total_beds: e.target.value }))}
+                        onBlur={() => setTouched((prev) => ({ ...prev, total_beds: true }))}
+                        isInvalid={showFieldError("total_beds", Number.isNaN(totalBedsNum) || totalBedsNum < 1)}
+                        errorMessage={showFieldError("total_beds", Number.isNaN(totalBedsNum) || totalBedsNum < 1) ? "Total beds must be at least 1." : undefined}
                         min="1"
                         required
                       />
+                    </div>
+
+                    <div className="grid grid-cols-1">
+                      <Input
+                        type="number"
+                        label="Occupied Beds"
+                        value={formData.occupied_beds}
+                        onChange={(e) => setFormData(prev => ({ ...prev, occupied_beds: e.target.value }))}
+                        onBlur={() => setTouched((prev) => ({ ...prev, occupied_beds: true }))}
+                        isInvalid={showFieldError("occupied_beds", Number.isNaN(occupiedBedsNum) || occupiedBedsNum < 0 || occupiedBedsNum > totalBedsNum)}
+                        errorMessage={showFieldError("occupied_beds", Number.isNaN(occupiedBedsNum) || occupiedBedsNum < 0 || occupiedBedsNum > totalBedsNum) ? "Occupied beds must be between 0 and total beds." : undefined}
+                        min="0"
+                        required
+                      />
+                      <p className={`text-xs mt-2 ${hasBedValidationError ? "text-red-600" : "text-gray-500"}`}>
+                        {hasBedValidationError
+                          ? "Occupied beds must be between 0 and total beds."
+                          : `Available beds will be ${Math.max(totalBedsNum - occupiedBedsNum, 0)} based on this input.`}
+                      </p>
                     </div>
 
                     <Select
@@ -238,6 +325,9 @@ export default function CreateProperty() {
                       label="Phone Number"
                       value={formData.phone}
                       onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                      onBlur={() => setTouched((prev) => ({ ...prev, phone: true }))}
+                      isInvalid={showFieldError("phone", !formData.phone.trim())}
+                      errorMessage={showFieldError("phone", !formData.phone.trim()) ? "Phone number is required." : undefined}
                       required
                     />
 
@@ -245,6 +335,9 @@ export default function CreateProperty() {
                       label="WhatsApp Number"
                       value={formData.whatsapp}
                       onChange={(e) => setFormData(prev => ({ ...prev, whatsapp: e.target.value }))}
+                      onBlur={() => setTouched((prev) => ({ ...prev, whatsapp: true }))}
+                      isInvalid={showFieldError("whatsapp", !formData.whatsapp.trim())}
+                      errorMessage={showFieldError("whatsapp", !formData.whatsapp.trim()) ? "WhatsApp number is required." : undefined}
                       required
                     />
                   </div>
@@ -275,17 +368,24 @@ export default function CreateProperty() {
                     </Select>
 
                     {selectedCompound && (
-                      <Select
-                        label="Select Building"
-                        value={selectedBuilding}
-                        onChange={(e) => setSelectedBuilding(e.target.value)}
-                      >
-                        {buildings.map(building => (
-                          <SelectItem key={building.id} value={building.id}>
-                            {building.name}
-                          </SelectItem>
-                        ))}
-                      </Select>
+                      <>
+                        <Select
+                          label="Select Building"
+                          value={selectedBuilding}
+                          onChange={(e) => setSelectedBuilding(e.target.value)}
+                          onBlur={() => setTouched((prev) => ({ ...prev, building: true }))}
+                          isRequired
+                        >
+                          {buildings.map(building => (
+                            <SelectItem key={building.id} value={building.id}>
+                              {building.name}
+                            </SelectItem>
+                          ))}
+                        </Select>
+                        {showFieldError("building", !selectedBuilding) && (
+                          <p className="text-xs text-red-600 mt-2">Please select a building.</p>
+                        )}
+                      </>
                     )}
                   </div>
                 </CardBody>
@@ -323,9 +423,12 @@ export default function CreateProperty() {
                       disabled={formData.images.length >= 8 || uploadingImages}
                     />
                     <p className="text-sm text-gray-600">
-                      Upload up to 8 images ({formData.images.length}/8 selected)
+                      Upload up to 8 images ({formData.images.length}/8 uploaded)
                     </p>
                     {uploadingImages && <p className="text-sm text-blue-600">Uploading images...</p>}
+                    <p className="text-xs text-gray-500">
+                      JPG, PNG, or WEBP only. Maximum size 5MB each.
+                    </p>
 
                     {formData.images.length > 0 && (
                       <div className="grid grid-cols-3 gap-2">
@@ -371,8 +474,9 @@ export default function CreateProperty() {
               type="submit"
               color="primary"
               isLoading={loading}
+              isDisabled={!isFormValid || uploadingImages}
             >
-              Create Property
+              Create Listing
             </Button>
           </div>
 

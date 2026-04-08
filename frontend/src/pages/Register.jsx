@@ -12,6 +12,7 @@ export default function Register() {
     role: "student"
   });
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const { register } = useAuthActions();
@@ -34,26 +35,26 @@ export default function Register() {
       });
       navigate("/");
     } catch (err) {
-      setError(err?.message || "Registration failed");
+      setError(err?.message || "Sign-up failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 flex items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 flex items-center justify-center px-4 py-8">
       <div className="max-w-md w-full">
         {/* Header */}
         <div className="text-center mb-8 animate-fade-in">
           <h1 className="text-4xl font-bold text-gradient mb-2">Join UniBoard</h1>
-          <p className="text-gray-600 text-lg">Create your account and start your accommodation journey</p>
+          <p className="text-gray-600 dark:text-slate-300 text-lg">Create your account and start exploring verified listings</p>
         </div>
 
         {/* Register Card */}
-        <div className="card p-8 animate-slide-in">
+        <div className="card p-8 animate-slide-in dark:bg-slate-900 dark:border-slate-700">
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Create Account</h2>
-            <p className="text-gray-600">Fill in your details to get started</p>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Create Account</h2>
+            <p className="text-gray-600 dark:text-slate-300">Fill in your details to get started</p>
           </div>
 
           {error && (
@@ -67,7 +68,7 @@ export default function Register() {
 
           <form onSubmit={handleRegister} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-2">
                 Full Name
               </label>
               <Input
@@ -82,7 +83,7 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-2">
                 Email Address
               </label>
               <Input
@@ -98,7 +99,7 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-2">
                 Phone Number <span className="text-gray-500">(optional)</span>
               </label>
               <Input
@@ -112,7 +113,7 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-2">
                 I am a...
               </label>
               <Select
@@ -129,17 +130,26 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-200 mb-2">
                 Password
               </label>
               <Input
                 placeholder="Create a strong password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={formData.password}
                 onChange={(e) => handleChange("password", e.target.value)}
                 className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg transition-colors duration-200"
                 size="lg"
                 startContent={<span className="text-gray-400">🔒</span>}
+                endContent={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="text-xs text-blue-600 hover:text-blue-700"
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                }
                 required
               />
             </div>
@@ -153,7 +163,7 @@ export default function Register() {
               {loading ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                  Creating Account...
+                  Creating account...
                 </div>
               ) : (
                 "Create Account"
@@ -162,21 +172,21 @@ export default function Register() {
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-slate-300">
               Already have an account?{" "}
               <button
                 onClick={() => navigate("/login")}
                 className="text-blue-600 hover:text-blue-700 font-semibold underline transition-colors"
               >
-                Login here
+                Sign in here
               </button>
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-8 text-gray-500 text-sm">
-          <p>By registering, you agree to our terms of service</p>
+        <div className="text-center mt-8 text-gray-500 dark:text-slate-400 text-sm">
+          <p>By signing up, you agree to our terms of service.</p>
         </div>
       </div>
     </div>

@@ -7,7 +7,7 @@ const Building = require('./Building');
 const Property = require('./Property');
 const PropertyImage = require('./PropertyImage');
 const PropertyFeature = require('./PropertyFeature');
-const Booking = require('./Booking');
+const Review = require('./Review');
 
 // Define associations
 User.hasMany(Compound, { foreignKey: 'landlord_id', as: 'compounds' });
@@ -28,11 +28,12 @@ PropertyImage.belongsTo(Property, { foreignKey: 'property_id', as: 'property' })
 Property.hasMany(PropertyFeature, { foreignKey: 'property_id', as: 'features' });
 PropertyFeature.belongsTo(Property, { foreignKey: 'property_id', as: 'property' });
 
-User.hasMany(Booking, { foreignKey: "user_id", as: "bookings" });
-Booking.belongsTo(User, { foreignKey: "user_id", as: "student" });
+// Review associations
+User.hasMany(Review, { foreignKey: 'user_id', as: 'reviews' });
+Review.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
-Property.hasMany(Booking, { foreignKey: "property_id", as: "bookings" });
-Booking.belongsTo(Property, { foreignKey: "property_id", as: "property" });
+Property.hasMany(Review, { foreignKey: 'listing_id', as: 'reviews' });
+Review.belongsTo(Property, { foreignKey: 'listing_id', as: 'listing' });
 
 // Sync database (only in development)
 if (process.env.NODE_ENV !== 'production') {
@@ -51,5 +52,5 @@ module.exports = {
   Property,
   PropertyImage,
   PropertyFeature,
-  Booking
+  Review
 };
