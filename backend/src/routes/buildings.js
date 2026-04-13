@@ -4,6 +4,36 @@ const auth = require("../middleware/auth");
 
 const router = express.Router();
 
+router.get("/", auth, async (req, res) => {
+  try {
+    const whereClause = {};
+
+    if (req.query.compound_id) {
+      whereClause.compound_id = req.query.compound_id;
+    }
+
+    const include = [{
+      model: Compound,
+      as: "compound"
+    }];
+
+    if (req.user.role !== "admin") {
+      include[0].where = { landlord_id: req.user.id };
+    }
+
+    const buildings = await Building.findAll({
+      where: whereClause,
+      include,
+      order: [["created_at", "DESC"]]
+    });
+
+    res.json(buildings);
+  } catch (error) {
+    console.error("Error fetching buildings:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get buildings for a compound
 router.get("/compound/:compoundId", auth, async (req, res) => {
   try {
@@ -39,6 +69,10 @@ router.post("/", auth, async (req, res) => {
   try {
     if (req.user.role !== 'landlord') {
       return res.status(403).json({ message: "Only landlords can create buildings" });
+    }
+
+    if (req.user.status !== "active") {
+      return res.status(403).json({ message: "Your landlord account is awaiting admin approval" });
     }
 
     const { name, compound_id } = req.body;

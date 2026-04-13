@@ -6,6 +6,9 @@ export interface User {
   role: 'student' | 'landlord' | 'admin';
   avatar?: string;
   phone?: string;
+  business_name?: string;
+  status?: 'pending' | 'active' | 'disabled';
+  isVerified?: boolean;
   createdAt: string;
 }
 

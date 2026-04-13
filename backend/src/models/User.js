@@ -35,9 +35,26 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING(20),
     allowNull: true
   },
+  business_name: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
+  verification_document_url: {
+    type: DataTypes.STRING(500),
+    allowNull: true
+  },
+  verification_url: {
+    type: DataTypes.STRING(500),
+    allowNull: true
+  },
   role: {
     type: DataTypes.ENUM('student', 'landlord', 'admin'),
     defaultValue: 'student'
+  },
+  status: {
+    type: DataTypes.ENUM('pending', 'active', 'disabled'),
+    allowNull: false,
+    defaultValue: 'active'
   },
   isVerified: {
     type: DataTypes.BOOLEAN,
@@ -70,6 +87,10 @@ const User = sequelize.define('User', {
 
 User.prototype.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
+};
+
+User.prototype.isLandlordPendingApproval = function() {
+  return this.role === 'landlord' && this.status !== 'active';
 };
 
 module.exports = User;

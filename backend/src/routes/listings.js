@@ -233,6 +233,10 @@ router.post("/", auth, async (req, res) => {
       return res.status(403).json({ message: "Only landlords can create listings" });
     }
 
+    if (req.user.role === "landlord" && req.user.status !== "active") {
+      return res.status(403).json({ message: "Your landlord account is awaiting admin approval" });
+    }
+
     const listing = await Listing.create({
       ...req.body,
       landlord_id: req.user.id
@@ -272,6 +276,10 @@ router.put("/:id", auth, async (req, res) => {
       return res.status(403).json({ message: "Not authorized" });
     }
 
+    if (req.user.role === "landlord" && req.user.status !== "active") {
+      return res.status(403).json({ message: "Your landlord account is awaiting admin approval" });
+    }
+
     Object.assign(listing, req.body);
     await listing.save();
 
@@ -303,6 +311,10 @@ router.delete("/:id", auth, async (req, res) => {
 
     if (listing.landlord_id !== req.user.id && req.user.role !== "admin") {
       return res.status(403).json({ message: "Not authorized" });
+    }
+
+    if (req.user.role === "landlord" && req.user.status !== "active") {
+      return res.status(403).json({ message: "Your landlord account is awaiting admin approval" });
     }
 
     await listing.destroy();

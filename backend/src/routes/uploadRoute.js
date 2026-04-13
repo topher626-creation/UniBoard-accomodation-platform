@@ -4,15 +4,34 @@ const cloudinary = require("../config/cloudinary");
 const upload = require("../config/multer");
 const auth = require("../middleware/auth");
 
-router.post("/", auth, upload.single("image"), async (req, res) => {
+router.post("/", (req, res, next) => {
+  // Optional auth for register purpose
+  if (req.query.purpose === 'register') {
+    return upload.single("file")(req, res, next);
+  }
+  return auth(upload.single("image"))(req, res, next);
+}, async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ message: "Image file is required" });
+      return res.status(400).json({ message: "Upload file is required" });
+    }
+
+    const purpose = req.query.purpose || 'general';
+    const isPdf = req.file.mimetype === "application/pdf";
+    const folder = purpose === 'register' ? "uniboard-documents" : (isPdf ? "uniboard-documents" : "uniboard");
+    const resourceType = isPdf ? "raw" : "image";
+    const maxFiles = purpose === 'register' ? 1 : 8;
+
+    if (purpose === 'register' && req.files?.length > maxFiles) {
+      return res.status(400).json({ message: `Maximum ${maxFiles} file for registration` });
     }
 
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
-        { folder: "uniboard", resource_type: "image" },
+        {
+          folder,
+          resource_type: resourceType
+        },
         (error, uploaded) => {
           if (error) return reject(error);
           return resolve(uploaded);
@@ -27,7 +46,7 @@ router.post("/", auth, upload.single("image"), async (req, res) => {
       public_id: result.public_id
     });
   } catch (err) {
-    return res.status(500).json({ message: "Image upload failed" });
+    return res.status(500).json({ message: "File upload failed", error: err.message });
   }
 });
 

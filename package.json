@@ -17,6 +17,8 @@
     "build:frontend": "npm run build --workspace=frontend",
     "build:backend": "echo 'Backend does not require build'",
     "lint": "npm run lint --workspace=frontend",
+    "typecheck": "npm run typecheck --workspace=frontend",
+    "check": "npm run typecheck --workspace=frontend && npm run lint --workspace=frontend && npm run build --workspace=frontend",
     "start:backend": "npm start --workspace=backend",
     "test": "echo 'No tests configured'",
     "seed": "npm run seed --workspace=backend"
@@ -30,6 +32,7 @@
   },
   "dependencies": {
     "bootstrap": "^5.3.8",
-    "react-bootstrap": "^2.10.10"
+    "react-bootstrap": "^2.10.10",
+    "react-icons": "^5.6.0"
   }
 }

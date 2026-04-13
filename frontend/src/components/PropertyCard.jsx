@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { MapPin, Home, Building2, Eye, User } from "lucide-react";
 import { useAuthStore } from "../stores/authStore.ts";
 
 export default function PropertyCard({ property }) {
@@ -34,8 +35,8 @@ export default function PropertyCard({ property }) {
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-500 text-4xl sm:text-6xl">
-            🏠
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-500">
+            <Building2 className="w-16 h-16 sm:w-24 sm:h-24 opacity-90" strokeWidth={1.25} aria-hidden />
           </div>
         )}
 
@@ -46,8 +47,8 @@ export default function PropertyCard({ property }) {
 
         {/* Guest Preview Badge */}
         {!isAuthenticated && (
-          <div className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-gradient-to-r from-amber-400 to-orange-400 text-white px-2 sm:px-3 py-1 rounded-full text-xs font-bold shadow-custom">
-            👁️ Preview
+          <div className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-gradient-to-r from-amber-400 to-orange-400 text-white px-2 sm:px-3 py-1 rounded-full text-xs font-bold shadow-custom inline-flex items-center gap-1">
+            <Eye size={14} className="shrink-0" aria-hidden /> Preview
           </div>
         )}
 
@@ -68,11 +69,13 @@ export default function PropertyCard({ property }) {
 
         {/* Location and Room Type */}
         <div className="space-y-1 mb-3 sm:mb-4">
-          <p className="text-gray-600 dark:text-slate-300 flex items-center text-xs sm:text-sm">
-            📍 <span className="ml-1 sm:ml-2 truncate">{location}</span>
+          <p className="text-gray-600 dark:text-slate-300 flex items-center gap-1.5 text-xs sm:text-sm">
+            <MapPin size={14} className="shrink-0 opacity-80" aria-hidden />
+            <span className="truncate">{location}</span>
           </p>
-          <p className="text-gray-600 dark:text-slate-300 flex items-center text-xs sm:text-sm">
-            🏠 <span className="ml-1 sm:ml-2 capitalize">{room_type}</span>
+          <p className="text-gray-600 dark:text-slate-300 flex items-center gap-1.5 text-xs sm:text-sm">
+            <Home size={14} className="shrink-0 opacity-80" aria-hidden />
+            <span className="capitalize">{room_type}</span>
           </p>
         </div>
 
@@ -100,8 +103,9 @@ export default function PropertyCard({ property }) {
 
         {/* Landlord */}
         {isAuthenticated && landlord_name && (
-          <p className="text-xs sm:text-sm text-gray-600 dark:text-slate-300 mb-3 sm:mb-4 flex items-center truncate">
-            👤 <span className="ml-1 sm:ml-2 font-medium truncate">{landlord_name}</span>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-slate-300 mb-3 sm:mb-4 flex items-center gap-1.5 truncate">
+            <User size={14} className="shrink-0 opacity-80" aria-hidden />
+            <span className="font-medium truncate">{landlord_name}</span>
           </p>
         )}
 

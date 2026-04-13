@@ -146,7 +146,7 @@ export function ReviewSection({ propertyId, reviews = [], averageRating = 0, rev
               </div>
               <p className="mb-0">{review.comment}</p>
               {review.verified && (
-                <span className="badge bg-success mt-2">✓ Verified Stay</span>
+                <span className="badge bg-success mt-2">Verified stay</span>
               )}
             </div>
           ))}

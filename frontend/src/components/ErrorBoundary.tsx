@@ -1,5 +1,5 @@
 import React, { ReactNode, ReactElement } from 'react';
-import { Card, CardBody, Button } from '@nextui-org/react';
+import { AlertTriangle } from 'lucide-react';
 
 interface Props {
   children: ReactNode;
@@ -28,25 +28,27 @@ export class ErrorBoundary extends React.Component<Props, State> {
   render(): ReactElement {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-          <Card className="w-full max-w-md shadow-lg">
-            <CardBody className="p-8 text-center">
-              <div className="text-6xl mb-4">❌</div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h1>
-              <p className="text-gray-600 mb-6 break-words">
+        <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light px-3">
+          <div className="card shadow-lg" style={{ maxWidth: '440px', width: '100%' }}>
+            <div className="card-body p-5 text-center">
+              <div className="text-danger mb-3 d-flex justify-content-center" aria-hidden>
+                <AlertTriangle size={56} strokeWidth={1.5} />
+              </div>
+              <h2 className="fw-bold mb-2">Something went wrong</h2>
+              <p className="text-muted mb-4">
                 {this.state.error?.message || 'An unexpected error occurred'}
               </p>
-              <Button
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+              <button
+                className="btn btn-primary px-4"
                 onClick={() => {
                   this.setState({ hasError: false, error: null });
                   window.location.href = '/';
                 }}
               >
                 Go Back Home
-              </Button>
-            </CardBody>
-          </Card>
+              </button>
+            </div>
+          </div>
         </div>
       );
     }

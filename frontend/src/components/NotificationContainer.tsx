@@ -1,12 +1,14 @@
 import { useEffect } from 'react';
-import { Card, CardBody } from '@nextui-org/react';
 import { useUiStore } from '@/stores/uiStore';
 
 export function NotificationContainer() {
   const { notifications, removeNotification } = useUiStore();
 
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-3 pointer-events-none">
+    <div
+      className="position-fixed top-0 end-0 p-3"
+      style={{ zIndex: 9999, pointerEvents: 'none' }}
+    >
       {notifications.map((notification) => (
         <NotificationItem
           key={notification.id}
@@ -33,42 +35,26 @@ function NotificationItem({ notification, onClose }: NotificationItemProps) {
     return () => clearTimeout(timer);
   }, [onClose]);
 
-  const bgColor = {
-    success: 'bg-green-50 border-green-200',
-    error: 'bg-red-50 border-red-200',
-    info: 'bg-blue-50 border-blue-200',
-    warning: 'bg-yellow-50 border-yellow-200',
-  }[notification.type];
-
-  const icon = {
-    success: '✓',
-    error: '✕',
-    info: 'ℹ',
-    warning: '⚠',
-  }[notification.type];
-
-  const textColor = {
-    success: 'text-green-800',
-    error: 'text-red-800',
-    info: 'text-blue-800',
-    warning: 'text-yellow-800',
+  const alertClass = {
+    success: 'alert-success',
+    error: 'alert-danger',
+    info: 'alert-info',
+    warning: 'alert-warning',
   }[notification.type];
 
   return (
-    <Card
-      className={`${bgColor} border pointer-events-auto shadow-lg rounded-lg`}
-      shadow="sm"
+    <div
+      className={`alert ${alertClass} alert-dismissible d-flex align-items-center gap-2 shadow mb-2 fade show`}
+      role="alert"
+      style={{ pointerEvents: 'auto', minWidth: '280px', maxWidth: '360px' }}
     >
-      <CardBody className="p-4 flex-row items-center gap-3">
-        <span className={`text-xl font-bold ${textColor}`}>{icon}</span>
-        <p className={`${textColor} font-medium flex-1`}>{notification.message}</p>
-        <button
-          onClick={onClose}
-          className={`text-lg font-bold ${textColor} hover:opacity-70 transition-opacity`}
-        >
-          ✕
-        </button>
-      </CardBody>
-    </Card>
+      <span className="flex-grow-1">{notification.message}</span>
+      <button
+        type="button"
+        className="btn-close flex-shrink-0"
+        onClick={onClose}
+        aria-label="Close"
+      />
+    </div>
   );
 }

@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { Search, Building2 } from "lucide-react";
 import { PropertyCard } from "../components/cards/PropertyCard";
 import { api } from "../services/api";
 
@@ -16,11 +17,7 @@ function Home() {
   });
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    fetchProperties();
-  }, []);
-
-  const fetchProperties = async () => {
+  const fetchProperties = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -31,14 +28,18 @@ function Home() {
       if (filters.price_max) params.append("price_max", filters.price_max);
       if (filters.available_only) params.append("available_only", "true");
 
-      const response = await api.getProperties(params.toString() ? `?${params.toString()}` : "");
+      const response = await api.getProperties(params);
       setProperties(response.properties || []);
     } catch (error) {
       console.error("Error fetching properties:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => {
+    fetchProperties();
+  }, [fetchProperties]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -62,47 +63,97 @@ function Home() {
       price_max: "",
       available_only: false,
     });
-    setTimeout(fetchProperties, 0);
   };
 
   return (
     <div className="fade-in">
       {/* Hero Section */}
-      <section className="bg-primary text-white py-5 mb-4">
-        <div className="container">
-          <div className="row align-items-center">
+
+      <section
+        className="ub-hero ub-hero--photo text-white py-5 mb-4 relative overflow-hidden"
+        style={{ paddingBottom: "150px" }}
+      >
+        <div className="container py-3 relative z-10">
+          <div className="row align-items-center g-4">
             <div className="col-lg-7">
-              <h1 className="display-4 fw-bold mb-3">
-                Find Your Perfect Student Bedspace
+              <span className="badge rounded-pill mb-3" style={{ background: "rgba(255,255,255,0.2)", color: "#fff", fontSize: "0.8rem" }}>
+                Zambia&apos;s trusted student housing platform
+              </span>
+              <h1 className="display-4 fw-bold mb-3" style={{ lineHeight: "1.15" }}>
+                Find Your Perfect<br />Student Bedspace
               </h1>
-              <p className="lead mb-4 opacity-75">
+              <p className="lead mb-3" style={{ opacity: "0.85" }}>
                 Discover verified off-campus accommodation near your university.
                 Connect directly with trusted landlords and agents.
               </p>
-              
+              <p className="small mb-4" style={{ opacity: "0.72" }}>
+                Founded by <strong className="text-white">Siame Christopher</strong>
+                <span className="d-none d-sm-inline"> — sole founder; built independently with ideas from a small team</span>
+                <span className="d-sm-none"> — sole founder</span>
+                .{" "}
+                <Link to="/about" className="text-white text-decoration-underline text-decoration-underline-opacity-50">
+                  Our story
+                </Link>
+              </p>
+
               {/* Search Bar */}
-              <form onSubmit={handleSearch} className="d-flex gap-2 flex-wrap">
-                <div className="flex-grow-1">
+              <form onSubmit={handleSearch}>
+                <div className="d-flex gap-2 flex-column flex-sm-row">
                   <input
                     type="text"
                     name="search"
-                    className="form-control form-control-lg"
-                    placeholder="Search by name, location..."
+                    className="form-control form-control-lg rounded-pill"
+                    placeholder="Search by name or location..."
                     value={filters.search}
                     onChange={handleFilterChange}
+                    style={{ minWidth: 0 }}
                   />
+                  <button
+                    type="submit"
+                    className="btn btn-light btn-lg px-4 fw-semibold text-primary rounded-pill flex-shrink-0 d-inline-flex align-items-center gap-2"
+                  >
+                    <Search size={20} aria-hidden /> Search
+                  </button>
                 </div>
-                <button type="submit" className="btn btn-light btn-lg px-4">
-                  🔍 Search
-                </button>
               </form>
+
+              {/* Stats */}
+              <div className="d-flex gap-4 mt-4 flex-wrap">
+                <div>
+                  <div className="fw-bold fs-5">500+</div>
+                  <div className="small" style={{ opacity: 0.75 }}>Verified Listings</div>
+                </div>
+                <div>
+                  <div className="fw-bold fs-5">3 Cities</div>
+                  <div className="small" style={{ opacity: 0.75 }}>Across Zambia</div>
+                </div>
+                <div>
+                  <div className="fw-bold fs-5">1,000+</div>
+                  <div className="small" style={{ opacity: 0.75 }}>Students Helped</div>
+                </div>
+              </div>
             </div>
-            <div className="col-lg-5 d-none d-lg-block text-center">
-              <div style={{ fontSize: "8rem" }}>🏠</div>
+            <div className="col-lg-5 d-none d-lg-flex justify-content-end position-relative">
+              <img
+                src="/uniboard-logo.png"
+                alt=""
+                className="position-absolute"
+                style={{
+                  top: "-40px",
+                  right: "-40px",
+                  width: "min(420px, 42vw)",
+                  height: "auto",
+                  opacity: 0.12,
+                  zIndex: 1,
+                  pointerEvents: "none",
+                }}
+                decoding="async"
+              />
             </div>
           </div>
         </div>
       </section>
+
 
       {/* Quick Filter Buttons */}
       <section className="container mb-4">
@@ -111,7 +162,6 @@ function Home() {
             className="btn btn-outline-primary"
             onClick={() => {
               setFilters((prev) => ({ ...prev, room_type: "single" }));
-              setTimeout(fetchProperties, 0);
             }}
           >
             Single Room
@@ -120,7 +170,6 @@ function Home() {
             className="btn btn-outline-primary"
             onClick={() => {
               setFilters((prev) => ({ ...prev, room_type: "bedsitter" }));
-              setTimeout(fetchProperties, 0);
             }}
           >
             Bedsitter
@@ -129,7 +178,6 @@ function Home() {
             className="btn btn-outline-primary"
             onClick={() => {
               setFilters((prev) => ({ ...prev, room_type: "self-contained" }));
-              setTimeout(fetchProperties, 0);
             }}
           >
             Self-contained
@@ -138,7 +186,6 @@ function Home() {
             className="btn btn-outline-primary"
             onClick={() => {
               setFilters((prev) => ({ ...prev, available_only: true }));
-              setTimeout(fetchProperties, 0);
             }}
           >
             Available Now
@@ -253,8 +300,10 @@ function Home() {
           </div>
         ) : properties.length === 0 ? (
           <div className="text-center py-5">
-            <div style={{ fontSize: "4rem" }}>🏚️</div>
-            <h4 className="mt-3">No Properties Found</h4>
+            <div className="d-inline-flex align-items-center justify-content-center rounded-circle bg-light text-primary mb-2" style={{ width: 72, height: 72 }}>
+              <Building2 size={36} aria-hidden />
+            </div>
+            <h4 className="mt-3">No properties found</h4>
             <p className="text-muted">
               Try adjusting your filters or check back later.
             </p>

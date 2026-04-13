@@ -40,8 +40,9 @@ class ApiClient {
           window.location.href = '/login';
         }
 
+        const payload = error.response?.data as { message?: string } | undefined;
         const apiError: ApiError = {
-          message: error.response?.data?.message || error.message || 'An error occurred',
+          message: payload?.message ?? error.message ?? 'An error occurred',
           status: error.response?.status || 0,
           data: error.response?.data,
         };

@@ -1,8 +1,21 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import {
+  Search,
+  MapPin,
+  Heart,
+  Check,
+  Phone,
+  MessageCircle,
+  Star,
+  ChevronLeft,
+} from "lucide-react";
 import { api } from "../services/api";
 import { useAuthStore } from "../stores/authStore";
 import { ReviewSection } from "../components/ReviewSection";
+
+const HERO_PLACEHOLDER =
+  "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1600&q=80";
 
 function PropertyDetail() {
   const { id } = useParams();
@@ -13,11 +26,7 @@ function PropertyDetail() {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("details");
 
-  useEffect(() => {
-    fetchProperty();
-  }, [id]);
-
-  const fetchProperty = async () => {
+  const fetchProperty = useCallback(async () => {
     setLoading(true);
     try {
       const data = await api.getProperty(id);
@@ -27,7 +36,11 @@ function PropertyDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchProperty();
+  }, [fetchProperty]);
 
   const handleBooking = () => {
     if (!user) {
@@ -92,8 +105,10 @@ function PropertyDetail() {
   if (error || !property) {
     return (
       <div className="container py-5 text-center">
-        <div style={{ fontSize: "4rem" }}>🔍</div>
-        <h3 className="mt-3">Property Not Found</h3>
+        <div className="d-inline-flex align-items-center justify-content-center rounded-circle bg-light text-primary mb-3" style={{ width: 80, height: 80 }}>
+          <Search size={40} aria-hidden />
+        </div>
+        <h3 className="mt-3">Property not found</h3>
         <p className="text-muted">{error || "This property may have been removed."}</p>
         <Link to="/" className="btn btn-primary">
           Back to Home
@@ -106,17 +121,16 @@ function PropertyDetail() {
     <div className="fade-in">
       {/* Hero Image */}
       <section className="position-relative" style={{ height: "400px" }}>
-        {property.images && property.images.length > 0 ? (
-          <img
-            src={property.images[0]}
-            alt={property.name}
-            className="w-100 h-100 object-fit-cover"
-          />
-        ) : (
-          <div className="w-100 h-100 bg-light d-flex align-items-center justify-content-center">
-            <span className="text-muted">No Images</span>
-          </div>
-        )}
+        <img
+          src={property.images?.[0] || HERO_PLACEHOLDER}
+          alt={property.name}
+          className="w-100 h-100 object-fit-cover"
+          style={{ objectFit: "cover" }}
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = HERO_PLACEHOLDER;
+          }}
+        />
         
         {/* Image Gallery Hint */}
         {property.images && property.images.length > 1 && (
@@ -130,10 +144,12 @@ function PropertyDetail() {
         {/* Back Button */}
         <div className="position-absolute top-0 start-0 p-3">
           <button
-            className="btn btn-light rounded-circle shadow"
+            type="button"
+            className="btn btn-light rounded-circle shadow d-inline-flex align-items-center justify-content-center"
             onClick={() => navigate(-1)}
+            aria-label="Go back"
           >
-            ←
+            <ChevronLeft size={22} />
           </button>
         </div>
       </section>
@@ -147,10 +163,13 @@ function PropertyDetail() {
             <div className="d-flex justify-content-between align-items-start mb-3">
               <div>
                 <h1 className="fw-bold mb-2">{property.name}</h1>
-                <p className="text-muted mb-2">
-                  📍 {property.location}
-                  {property.building && ` - ${property.building}`}
-                  {property.compound && ` (${property.compound})`}
+                <p className="text-muted mb-2 d-flex align-items-start gap-2">
+                  <MapPin size={18} className="flex-shrink-0 mt-1" aria-hidden />
+                  <span>
+                    {property.location}
+                    {property.building && ` - ${property.building}`}
+                    {property.compound && ` (${property.compound})`}
+                  </span>
                 </p>
                 <div className="d-flex gap-2 align-items-center">
                   {getAvailabilityBadge()}
@@ -158,17 +177,14 @@ function PropertyDetail() {
                     {getRoomTypeLabel(property.room_type)}
                   </span>
                   {property.average_rating > 0 && (
-                    <span className="badge bg-warning text-dark">
-                      ⭐ {property.average_rating} ({property.review_count})
+                    <span className="badge bg-warning text-dark d-inline-flex align-items-center gap-1">
+                      <Star size={12} fill="currentColor" aria-hidden /> {property.average_rating} ({property.review_count})
                     </span>
                   )}
                 </div>
               </div>
-              <button
-                className="btn btn-outline-danger"
-                onClick={handleFavorite}
-              >
-                🤍 Save
+              <button type="button" className="btn btn-outline-danger d-inline-flex align-items-center gap-2" onClick={handleFavorite}>
+                <Heart size={18} aria-hidden /> Save
               </button>
             </div>
 
@@ -236,7 +252,7 @@ function PropertyDetail() {
                     {property.features.map((feature, index) => (
                       <div key={index} className="col-md-6">
                         <div className="d-flex align-items-center gap-2">
-                          <span>✓</span>
+                          <Check size={18} className="text-success flex-shrink-0" aria-hidden />
                           <span>{feature}</span>
                         </div>
                       </div>
@@ -289,8 +305,8 @@ function PropertyDetail() {
                     <h6 className="fw-bold">Listed By</h6>
                     <p className="mb-1">{property.landlord.name}</p>
                     {property.landlord.phone && (
-                      <p className="mb-1 small">
-                        📱 {property.landlord.phone}
+                      <p className="mb-1 small d-flex align-items-center gap-2">
+                        <Phone size={14} aria-hidden /> {property.landlord.phone}
                       </p>
                     )}
                     {property.landlord.whatsapp && (
@@ -298,9 +314,9 @@ function PropertyDetail() {
                         href={`https://wa.me/${property.landlord.whatsapp.replace(/\D/g, "")}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="btn btn-success btn-sm w-100 mb-2"
+                        className="btn btn-success btn-sm w-100 mb-2 d-inline-flex align-items-center justify-content-center gap-2"
                       >
-                        💬 WhatsApp
+                        <MessageCircle size={16} aria-hidden /> WhatsApp
                       </a>
                     )}
                   </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { AlertTriangle, Building2, Plus, ClipboardList, MapPin, MoreVertical } from "lucide-react";
 import { useAuthStore } from "../stores/authStore";
 import { api } from "../services/api";
 
@@ -43,7 +44,7 @@ function LandlordDashboard() {
     try {
       await api.deleteProperty(id);
       setProperties(properties.filter(p => p.id !== id));
-    } catch (error) {
+    } catch {
       alert("Failed to delete property");
     }
   };
@@ -52,7 +53,7 @@ function LandlordDashboard() {
     try {
       await api.confirmBooking(id);
       fetchData();
-    } catch (error) {
+    } catch {
       alert("Failed to confirm booking");
     }
   };
@@ -64,7 +65,7 @@ function LandlordDashboard() {
     try {
       await api.rejectBooking(id, reason);
       fetchData();
-    } catch (error) {
+    } catch {
       alert("Failed to reject booking");
     }
   };
@@ -87,8 +88,8 @@ function LandlordDashboard() {
         <div className="container">
           <div className="d-flex justify-content-between align-items-center">
             <div>
-              <h1 className="display-6 fw-bold mb-1">Landlord Dashboard</h1>
-              <p className="mb-0 opacity-75">Welcome back, {user?.name}</p>
+<h1 className="display-6 fw-bold mb-1">Landlord Dashboard</h1>
+              <p className="mb-0 opacity-75">Welcome back, {user?.business_name || user?.name}</p>
             </div>
             <div>
               {user?.role === "admin" && (
@@ -103,6 +104,14 @@ function LandlordDashboard() {
           </div>
         </div>
       </section>
+
+      {user?.role === "landlord" && user?.status === "pending" && (
+        <section className="container mb-4">
+          <div className="alert alert-warning">
+            Your landlord account is waiting for admin approval. You can review your dashboard, but listing creation stays locked until approval.
+          </div>
+        </section>
+      )}
 
       {/* Stats */}
       <section className="container mb-4">
@@ -132,7 +141,7 @@ function LandlordDashboard() {
       {properties.length >= MAX_LISTINGS && (
         <section className="container mb-4">
           <div className="alert alert-warning d-flex align-items-center">
-            <span className="me-3">⚠️</span>
+            <AlertTriangle size={22} className="me-3 flex-shrink-0" aria-hidden />
             <div>
               <strong>Maximum {MAX_LISTINGS} listings reached.</strong>
               {" "}Remove one property to add another.
@@ -167,8 +176,10 @@ function LandlordDashboard() {
           <div>
             {properties.length === 0 ? (
               <div className="text-center py-5">
-                <div style={{ fontSize: "4rem" }}>🏠</div>
-                <h4 className="mt-3">No Properties Yet</h4>
+                <div className="d-inline-flex align-items-center justify-content-center rounded-circle bg-light text-primary mb-2" style={{ width: 72, height: 72 }}>
+                  <Building2 size={36} aria-hidden />
+                </div>
+                <h4 className="mt-3">No properties yet</h4>
                 <p className="text-muted mb-3">
                   Start by creating your first listing
                 </p>
@@ -190,10 +201,12 @@ function LandlordDashboard() {
                           </span>
                           <div className="dropdown">
                             <button
-                              className="btn btn-sm btn-link text-muted"
+                              type="button"
+                              className="btn btn-sm btn-link text-muted p-1"
                               data-bs-toggle="dropdown"
+                              aria-label="Property actions"
                             >
-                              ⋮
+                              <MoreVertical size={18} />
                             </button>
                             <ul className="dropdown-menu dropdown-menu-end">
                               <li>
@@ -220,8 +233,9 @@ function LandlordDashboard() {
                         </div>
                         
                         <h5 className="card-title fw-bold">{property.name}</h5>
-                        <p className="text-muted small mb-2">
-                          📍 {property.location || property.compound || "Location"}
+                        <p className="text-muted small mb-2 d-flex align-items-start gap-1">
+                          <MapPin size={14} className="flex-shrink-0 mt-1" aria-hidden />
+                          <span>{property.location || property.compound || "Location"}</span>
                         </p>
                         
                         <div className="d-flex justify-content-between align-items-center">
@@ -240,14 +254,22 @@ function LandlordDashboard() {
                 {/* Add New Card */}
                 {properties.length < MAX_LISTINGS && (
                   <div className="col-md-6 col-lg-4">
-                    <Link to="/create-listing" className="text-decoration-none">
+                    <Link
+                      to={user?.status === "active" || user?.role === "admin" ? "/create-listing" : "#"}
+                      className="text-decoration-none"
+                      onClick={(event) => {
+                        if (user?.role === "landlord" && user?.status !== "active") {
+                          event.preventDefault();
+                        }
+                      }}
+                    >
                       <div
                         className="card dashboard-card h-100 d-flex align-items-center justify-content-center"
                         style={{ minHeight: "180px", borderStyle: "dashed" }}
                       >
-                        <div className="text-center text-muted">
-                          <div style={{ fontSize: "2rem" }}>➕</div>
-                          <p className="mb-0">Add New Property</p>
+                        <div className="text-center text-muted d-flex flex-column align-items-center gap-2">
+                          <Plus size={32} aria-hidden />
+                          <p className="mb-0">Add new property</p>
                         </div>
                       </div>
                     </Link>
@@ -263,8 +285,10 @@ function LandlordDashboard() {
           <div>
             {bookings.length === 0 ? (
               <div className="text-center py-5">
-                <div style={{ fontSize: "4rem" }}>📋</div>
-                <h4 className="mt-3">No Bookings Yet</h4>
+                <div className="d-inline-flex align-items-center justify-content-center rounded-circle bg-light text-primary mb-2" style={{ width: 72, height: 72 }}>
+                  <ClipboardList size={36} aria-hidden />
+                </div>
+                <h4 className="mt-3">No bookings yet</h4>
                 <p className="text-muted">
                   Bookings from students will appear here
                 </p>

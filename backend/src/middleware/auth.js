@@ -26,6 +26,10 @@ const auth = async (req, res, next) => {
       return res.status(403).json({ message: "Account suspended. Contact admin." });
     }
 
+    if (user.status === "disabled") {
+      return res.status(403).json({ message: "Account disabled. Contact admin." });
+    }
+
     req.user = user;
     next();
   } catch (error) {

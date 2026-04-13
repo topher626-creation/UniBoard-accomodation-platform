@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore.ts";
 import { useAuthActions } from "../hooks/useAuth.ts";
 
@@ -7,7 +7,6 @@ export default function Navbar() {
   const user = useAuthStore((state) => state.user);
   const { logout } = useAuthActions();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [showMenu, setShowMenu] = useState(false);
   const [darkMode, setDarkMode] = useState(false);

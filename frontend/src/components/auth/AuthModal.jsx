@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Modal } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import { GraduationCap, Building2, ShieldCheck, User, FileText, ArrowLeft } from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";
-import { api } from "../../services/api";
+import { BrandLogo } from "../BrandLogo";
 
 export function AuthModal({ show, onClose, initialMode = "login" }) {
   const [mode, setMode] = useState(initialMode);
@@ -111,14 +112,23 @@ export function AuthModal({ show, onClose, initialMode = "login" }) {
         <div className="row g-0">
           {/* Left Side - Branding */}
           <div className="col-md-5 bg-primary text-white p-4 d-none d-md-flex flex-column justify-content-center">
+            <div className="mb-3 align-self-start">
+              <BrandLogo height={44} to="/" />
+            </div>
             <h2 className="fw-bold mb-3">Welcome to UniBoard</h2>
             <p className="mb-0 opacity-75">
               Find your perfect bedspace near campus. Connect with verified landlords and students.
             </p>
-            <div className="mt-auto">
-              <p className="small mb-1">🎓 For Students</p>
-              <p className="small mb-1">🏠 For Landlords</p>
-              <p className="small mb-0">🔒 Secure & Verified</p>
+            <div className="mt-auto pt-4">
+              <p className="small mb-2 d-flex align-items-center gap-2">
+                <GraduationCap size={16} aria-hidden /> For students
+              </p>
+              <p className="small mb-2 d-flex align-items-center gap-2">
+                <Building2 size={16} aria-hidden /> For landlords
+              </p>
+              <p className="small mb-0 d-flex align-items-center gap-2">
+                <ShieldCheck size={16} aria-hidden /> Secure and verified
+              </p>
             </div>
           </div>
 
@@ -214,8 +224,8 @@ export function AuthModal({ show, onClose, initialMode = "login" }) {
                           className="card h-100 role-card text-center p-4"
                           onClick={() => handleRoleSelect("student")}
                         >
-                          <div className="mb-3">
-                            <span style={{ fontSize: "3rem" }}>🧑‍🎓</span>
+                          <div className="mb-3 text-primary d-flex justify-content-center">
+                            <GraduationCap size={48} strokeWidth={1.5} aria-hidden />
                           </div>
                           <h5 className="fw-bold mb-2">Student</h5>
                           <p className="text-muted small mb-0">
@@ -230,8 +240,8 @@ export function AuthModal({ show, onClose, initialMode = "login" }) {
                           className="card h-100 role-card text-center p-4"
                           onClick={() => handleRoleSelect("landlord")}
                         >
-                          <div className="mb-3">
-                            <span style={{ fontSize: "3rem" }}>🏠</span>
+                          <div className="mb-3 text-primary d-flex justify-content-center">
+                            <Building2 size={48} strokeWidth={1.5} aria-hidden />
                           </div>
                           <h5 className="fw-bold mb-2">Provider</h5>
                           <p className="text-muted small mb-0">
@@ -260,7 +270,9 @@ export function AuthModal({ show, onClose, initialMode = "login" }) {
                       className="btn btn-link p-0 text-muted mb-2"
                       onClick={() => setStep("role")}
                     >
-                      ← Back
+                      <span className="d-inline-flex align-items-center gap-1">
+                        <ArrowLeft size={16} aria-hidden /> Back
+                      </span>
                     </button>
                     <h4 className="fw-bold mb-1">Student Registration</h4>
                     <p className="text-muted mb-4">Find your perfect bedspace</p>
@@ -430,7 +442,9 @@ export function AuthModal({ show, onClose, initialMode = "login" }) {
                       className="btn btn-link p-0 text-muted mb-2"
                       onClick={() => setStep("role")}
                     >
-                      ← Back
+                      <span className="d-inline-flex align-items-center gap-1">
+                        <ArrowLeft size={16} aria-hidden /> Back
+                      </span>
                     </button>
                     <h4 className="fw-bold mb-1">Provider Registration</h4>
                     <p className="text-muted mb-4">List your properties</p>
@@ -457,7 +471,9 @@ export function AuthModal({ show, onClose, initialMode = "login" }) {
                                 setFormData({ ...formData, role: "landlord" })
                               }
                             >
-                              🏠 Landlord
+                              <span className="d-inline-flex align-items-center justify-content-center gap-1">
+                                <Building2 size={16} aria-hidden /> Landlord
+                              </span>
                             </div>
                             <div
                               className={`flex-fill p-2 border rounded text-center cursor-pointer ${
@@ -469,7 +485,9 @@ export function AuthModal({ show, onClose, initialMode = "login" }) {
                                 setFormData({ ...formData, role: "landlord" })
                               }
                             >
-                              👤 Agent
+                              <span className="d-inline-flex align-items-center justify-content-center gap-1">
+                                <User size={16} aria-hidden /> Agent
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -556,8 +574,9 @@ export function AuthModal({ show, onClose, initialMode = "login" }) {
                         </div>
                       </div>
 
-                      <div className="alert alert-info mt-3 py-2 small">
-                        📄 Your account will be pending approval before you can list properties.
+                      <div className="alert alert-info mt-3 py-2 small d-flex align-items-start gap-2">
+                        <FileText size={16} className="flex-shrink-0 mt-1" aria-hidden />
+                        <span>Your account will be pending approval before you can list properties.</span>
                       </div>
 
                       <button

@@ -39,6 +39,11 @@ export const createBookingSchema = z.object({
 
 // Review schemas
 export const createReviewSchema = z.object({
+  rating: z.number().min(1, 'Rating must be at least 1').max(5, 'Rating must not exceed 5'),
+  comment: z.string().min(10, 'Comment must be at least 10 characters').max(500, 'Comment cannot exceed 500 characters'),
+});
+
+export const createReviewWithPropertySchema = z.object({
   propertyId: z.string().min(1, 'Property is required'),
   rating: z.number().min(1, 'Rating must be at least 1').max(5, 'Rating must not exceed 5'),
   comment: z.string().min(5, 'Comment must be at least 5 characters'),

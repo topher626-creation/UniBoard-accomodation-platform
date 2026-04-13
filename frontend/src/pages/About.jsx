@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { Phone, Mail, MessageCircle } from "lucide-react";
+import { BrandLogo } from "../components/BrandLogo";
 
 function About() {
   const [activeTab, setActiveTab] = useState("about");
@@ -9,9 +11,19 @@ function About() {
       {/* Hero */}
       <section className="bg-primary text-white py-5">
         <div className="container text-center">
+          <div className="d-flex justify-content-center mb-4">
+            <div className="bg-white rounded-3 p-3 shadow-sm">
+              <BrandLogo height={56} to="/" />
+            </div>
+          </div>
           <h1 className="display-4 fw-bold mb-3">About UniBoard</h1>
-          <p className="lead opacity-75">
-            Connecting students with verified accommodation since 2024
+          <p className="lead opacity-75 mb-2">
+            Verified student accommodation in Zambia—built for safety, clarity, and trust.
+          </p>
+          <p className="small opacity-75 mb-0">
+            Founded by <strong>Siame Christopher</strong> (sole founder). UniBoard is developed
+            independently, with ideas from a small team; product direction and build are led by the
+            founder.
           </p>
         </div>
       </section>
@@ -57,25 +69,63 @@ function About() {
         {activeTab === "about" && (
           <div className="row g-4">
             <div className="col-lg-8 mx-auto">
-              <h2 className="fw-bold mb-4">🔒 Security First</h2>
+              <h2 className="fw-bold mb-3">Why UniBoard exists</h2>
               <p className="lead text-muted mb-4">
-                We prioritize student safety at every step. All listings and property providers
-                undergo a structured verification process to ensure trust, reliability, and peace
-                of mind when choosing accommodation.
+                Many university and college students—especially first-years—struggle to find{" "}
+                <strong>verified, safe, and affordable</strong> off-campus housing in Zambia.
+                Scams, thin information, and unreliable listings make an already stressful move
+                harder. UniBoard exists to fix that with a <strong>verification-first</strong>{" "}
+                approach.
               </p>
 
-              <h2 className="fw-bold mb-4">🌍 Centralized Access</h2>
-              <p className="lead text-muted mb-4">
-                Finding accommodation shouldn't be stressful. UniBoard brings together verified
-                bedspace options near major university areas into one easy-to-use platform—
-                saving you time and effort.
+              <h2 className="fw-bold mb-3">Who it is for</h2>
+              <ul className="text-muted mb-4">
+                <li className="mb-2">Students at universities and colleges</li>
+                <li className="mb-2">Landlords who are approved after admin verification</li>
+                <li className="mb-2">
+                  Initial focus on key institutions in Zambia—designed to scale nationwide and,
+                  over time, to other regions where the same trust model applies
+                </li>
+              </ul>
+
+              <h2 className="fw-bold mb-3">What makes UniBoard different</h2>
+              <ul className="text-muted mb-4">
+                <li className="mb-2">
+                  <strong>Verified landlords only</strong>—accounts are approved before they can
+                  post; listings can be reviewed for quality and safety
+                </li>
+                <li className="mb-2">
+                  <strong>Anti-scam by design</strong>—admin verification and controlled listings,
+                  not an open directory
+                </li>
+                <li className="mb-2">
+                  <strong>Student accommodation, not generic rentals</strong>—purpose-built for
+                  campus-adjacent housing and how students search
+                </li>
+                <li className="mb-2">
+                  <strong>Simple, friendly UX</strong>—for first-years and local students alike
+                </li>
+              </ul>
+
+              <h2 className="fw-bold mb-3">Listings and content</h2>
+              <p className="text-muted mb-4">
+                <strong>Landlords own</strong> their listing content and images.{" "}
+                <strong>UniBoard</strong> has the right to display and manage that content to
+                operate the service, and to <strong>moderate, approve, or remove</strong> material
+                that breaks platform rules—similar to trusted marketplace platforms you already use.
               </p>
 
-              <h2 className="fw-bold mb-4">🎓 Focus on What Matters</h2>
-              <p className="lead text-muted">
-                By simplifying the search for accommodation, we allow students to concentrate
-                on their academic journey. Spend less time worrying about where to stay and
-                more time succeeding in your studies.
+              <h2 className="fw-bold mb-4">Security and peace of mind</h2>
+              <p className="lead text-muted mb-4">
+                We prioritize student safety: verified providers, structured checks, and a
+                controlled listing environment so you can focus on your studies—not on guessing
+                whether a post is legitimate.
+              </p>
+
+              <p className="text-muted small border-start border-primary border-3 ps-3 mb-0">
+                <strong>Vision:</strong> UniBoard is building toward a trusted student accommodation
+                network—starting in Zambia, expanding as verification and partnerships allow—so
+                learners everywhere can find safe, transparent housing with confidence.
               </p>
             </div>
           </div>
@@ -85,7 +135,7 @@ function About() {
         {activeTab === "how" && (
           <div className="row g-4">
             <div className="col-lg-10 mx-auto">
-              <h2 className="fw-bold text-center mb-5">🧭 Simple, Fast, Reliable</h2>
+              <h2 className="fw-bold text-center mb-5">Simple, fast, reliable</h2>
               
               <div className="row g-4">
                 <div className="col-md-6">
@@ -145,28 +195,28 @@ function About() {
         {activeTab === "services" && (
           <div className="row g-4">
             <div className="col-lg-10 mx-auto">
-              <h2 className="fw-bold text-center mb-5">🛠️ Designed for Students and Property Providers</h2>
+              <h2 className="fw-bold text-center mb-5">Designed for students and property providers</h2>
               
               <div className="row g-4">
                 <div className="col-md-6">
                   <div className="card h-100 p-4 border-primary">
-                    <h4 className="fw-bold mb-3">🧑‍🎓 For Students</h4>
+                    <h4 className="fw-bold mb-3">For students</h4>
                     <ul className="list-unstyled">
-                      <li className="mb-2">✓ Easy search for verified bedspaces</li>
-                      <li className="mb-2">✓ Smart filters for faster decisions</li>
-                      <li className="mb-2">✓ Direct communication with providers</li>
-                      <li className="mb-2">✓ Reliable and safe accommodation options</li>
+                      <li className="mb-2">Easy search for verified bedspaces</li>
+                      <li className="mb-2">Smart filters for faster decisions</li>
+                      <li className="mb-2">Direct communication with providers</li>
+                      <li className="mb-2">Reliable and safe accommodation options</li>
                     </ul>
                   </div>
                 </div>
                 <div className="col-md-6">
                   <div className="card h-100 p-4 border-success">
-                    <h4 className="fw-bold mb-3">🏠 For Landlords & Agents</h4>
+                    <h4 className="fw-bold mb-3">For verified landlords</h4>
                     <ul className="list-unstyled">
-                      <li className="mb-2">✓ List and manage properties (simple & efficient)</li>
-                      <li className="mb-2">✓ Reach a targeted student audience</li>
-                      <li className="mb-2">✓ Track availability and inquiries</li>
-                      <li className="mb-2">✓ Increase occupancy with minimal effort</li>
+                      <li className="mb-2">Apply for an account; post only after admin approval</li>
+                      <li className="mb-2">List and manage properties in one place</li>
+                      <li className="mb-2">Reach students actively looking near campus</li>
+                      <li className="mb-2">You own your listing content; we help display it safely</li>
                     </ul>
                   </div>
                 </div>
@@ -185,7 +235,7 @@ function About() {
         {activeTab === "help" && (
           <div className="row g-4">
             <div className="col-lg-8 mx-auto">
-              <h2 className="fw-bold text-center mb-5">🆘 We're Here to Help</h2>
+              <h2 className="fw-bold text-center mb-5">We&apos;re here to help</h2>
 
               <div className="accordion" id="faqAccordion">
                 <div className="accordion-item">
@@ -228,8 +278,9 @@ function About() {
                     data-bs-parent="#faqAccordion"
                   >
                     <div className="accordion-body">
-                      Yes. All properties and providers go through a structured verification
-                      process before being listed on our platform.
+                      Landlord accounts are approved by admin before they can create listings.
+                      Listings are shown in a controlled environment; we may review content again
+                      if needed to keep the platform safe and accurate.
                     </div>
                   </div>
                 </div>
@@ -274,8 +325,9 @@ function About() {
                     data-bs-parent="#faqAccordion"
                   >
                     <div className="accordion-body">
-                      Yes, students can browse and search listings at no cost. Providers pay
-                      a small fee to list their properties.
+                      Students can browse and search listings at no cost. Landlord accounts require
+                      verification; any provider fees or terms are communicated when you register
+                      as a landlord.
                     </div>
                   </div>
                 </div>
@@ -297,22 +349,53 @@ function About() {
                     data-bs-parent="#faqAccordion"
                   >
                     <div className="accordion-body">
-                      Create a provider account, submit your property details, and wait for
-                      admin approval before your listing goes live.
+                      Register as a landlord, complete verification, and wait for admin approval.
+                      Only approved landlords can create listings; your content stays yours, while
+                      UniBoard may moderate for safety and quality.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="accordion-item">
+                  <h3 className="accordion-header">
+                    <button
+                      className="accordion-button collapsed"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#faq6"
+                    >
+                      Who owns my photos and listing text?
+                    </button>
+                  </h3>
+                  <div
+                    id="faq6"
+                    className="accordion-collapse collapse"
+                    data-bs-parent="#faqAccordion"
+                  >
+                    <div className="accordion-body">
+                      You (the landlord) own your listings and images. UniBoard may display and
+                      manage them to run the platform, and may remove or adjust content that violates
+                      rules or puts users at risk.
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className="card mt-5 p-4 bg-light">
-                <h5 className="fw-bold mb-3">📞 Need More Help?</h5>
+                <h5 className="fw-bold mb-3">Need more help?</h5>
                 <p className="text-muted mb-3">
                   If you still have questions, reach out to us:
                 </p>
                 <ul className="list-unstyled">
-                  <li className="mb-2">📱 WhatsApp: +260 976 449 402</li>
-                  <li className="mb-2">📞 Phone: +260 764 388 122</li>
-                  <li className="mb-2">✉️ Email: contact@uniboard.com</li>
+                  <li className="mb-2 d-flex align-items-center gap-2">
+                    <MessageCircle size={16} aria-hidden /> WhatsApp: +260 976 449 402
+                  </li>
+                  <li className="mb-2 d-flex align-items-center gap-2">
+                    <Phone size={16} aria-hidden /> Phone: +260 764 388 122
+                  </li>
+                  <li className="mb-2 d-flex align-items-center gap-2">
+                    <Mail size={16} aria-hidden /> Email: contact@uniboard.com
+                  </li>
                 </ul>
               </div>
             </div>

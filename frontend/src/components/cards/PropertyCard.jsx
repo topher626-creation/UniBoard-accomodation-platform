@@ -1,4 +1,8 @@
 import { Link } from "react-router-dom";
+import { MapPin, Building2, User } from "lucide-react";
+
+const PLACEHOLDER_ROOM =
+  "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=75";
 
 export function PropertyCard({ property, showLandlord = false }) {
   const getAvailabilityBadge = () => {
@@ -31,23 +35,16 @@ export function PropertyCard({ property, showLandlord = false }) {
       <div className="card property-card h-100">
         {/* Image */}
         <div className="position-relative overflow-hidden">
-          {property.image ? (
-            <img
-              src={property.image}
-              className="card-img-top"
-              alt={property.name}
-              onError={(e) => {
-                e.target.src = "https://via.placeholder.com/400x300?text=No+Image";
-              }}
-            />
-          ) : (
-            <div
-              className="card-img-top d-flex align-items-center justify-content-center bg-light"
-              style={{ height: "200px" }}
-            >
-              <span className="text-muted">No Image</span>
-            </div>
-          )}
+          <img
+            src={property.image || PLACEHOLDER_ROOM}
+            className="card-img-top"
+            alt={property.name || "Property"}
+            style={{ height: "200px", objectFit: "cover" }}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = PLACEHOLDER_ROOM;
+            }}
+          />
           
           {/* Badges */}
           <div className="position-absolute top-0 end-0 p-2 d-flex gap-1">
@@ -66,13 +63,15 @@ export function PropertyCard({ property, showLandlord = false }) {
             {property.name}
           </h5>
           
-          <p className="card-text text-muted small mb-2">
-            📍 {property.location || property.compound || "Location not specified"}
+          <p className="card-text text-muted small mb-2 d-flex align-items-start gap-1">
+            <MapPin size={14} className="flex-shrink-0 mt-1" aria-hidden />
+            <span>{property.location || property.compound || "Location not specified"}</span>
           </p>
 
           {property.compound && (
-            <p className="card-text text-muted small mb-2">
-              🏢 {property.compound}
+            <p className="card-text text-muted small mb-2 d-flex align-items-start gap-1">
+              <Building2 size={14} className="flex-shrink-0 mt-1" aria-hidden />
+              <span>{property.compound}</span>
             </p>
           )}
 
@@ -95,8 +94,8 @@ export function PropertyCard({ property, showLandlord = false }) {
           </div>
 
           {showLandlord && property.landlord_name && (
-            <p className="card-text text-muted small mt-2 mb-0">
-              👤 Listed by {property.landlord_name}
+            <p className="card-text text-muted small mt-2 mb-0 d-flex align-items-center gap-1">
+              <User size={14} aria-hidden /> Listed by {property.landlord_name}
             </p>
           )}
         </div>

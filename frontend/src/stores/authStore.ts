@@ -10,9 +10,16 @@ interface AuthState {
   logout: () => void;
   hydrate: () => void;
   updateUser: (userData: any) => void;
+  // Compatibility setters used by useAuth.ts
+  setUser: (user: any) => void;
+  setToken: (token: string) => void;
+  setLoading: (isLoading: boolean) => void;
+  setError: (error: any) => void;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+type AuthLoginRegisterResult = { user: any; token?: string };
+
+export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
@@ -20,7 +27,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (email: string, password: string) => {
     set({ isLoading: true });
     try {
-      const response = await api.login(email, password);
+      const response = (await api.login(email, password)) as AuthLoginRegisterResult;
       set({
         user: response.user,
         isAuthenticated: true,
@@ -35,7 +42,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   register: async (userData: any) => {
     set({ isLoading: true });
     try {
-      const response = await api.register(userData);
+      const response = (await api.register(userData)) as AuthLoginRegisterResult;
       set({
         user: response.user,
         isAuthenticated: true,
@@ -77,5 +84,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   updateUser: (userData: any) => {
     localStorage.setItem("user", JSON.stringify(userData));
     set({ user: userData });
+  },
+
+  // Compatibility setters used by useAuth.ts hook
+  setUser: (user: any) => {
+    localStorage.setItem("user", JSON.stringify(user));
+    set({ user, isAuthenticated: true });
+  },
+
+  setToken: (token: string) => {
+    localStorage.setItem("token", token);
+  },
+
+  setLoading: (isLoading: boolean) => {
+    set({ isLoading });
+  },
+
+  setError: (_error: any) => {
+    // Error state is handled locally in components
   },
 }));

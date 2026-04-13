@@ -65,7 +65,14 @@ class ApiService {
 
   // Properties
   async getProperties(params = {}) {
-    const queryString = new URLSearchParams(params).toString();
+    let queryString = "";
+    if (params instanceof URLSearchParams) {
+      queryString = params.toString();
+    } else if (typeof params === "string") {
+      queryString = params.replace(/^\?/, "");
+    } else {
+      queryString = new URLSearchParams(params).toString();
+    }
     return this.request(`/properties${queryString ? `?${queryString}` : ""}`);
   }
 
@@ -191,6 +198,20 @@ class ApiService {
     return this.request(`/admin/users/${id}`, {
       method: "PUT",
       body: JSON.stringify({ role }),
+    });
+  }
+
+  /** Update admin-managed user fields (role and/or status). */
+  async updateAdminUser(id, body) {
+    return this.request(`/admin/users/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+  }
+
+  async approveLandlord(id) {
+    return this.request(`/admin/users/${id}/approve-landlord`, {
+      method: "PATCH",
     });
   }
 

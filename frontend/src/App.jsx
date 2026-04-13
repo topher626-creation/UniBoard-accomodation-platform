@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 import Navbar from "./components/navbar/Navbar";
 import Footer from "./components/footer/Footer";
@@ -27,71 +27,60 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <BrowserRouter>
-        <div className="d-flex flex-column min-vh-100">
-          {/* GLOBAL NOTIFICATIONS */}
-          <NotificationContainer />
+      <div className="d-flex flex-column min-vh-100">
+        <NotificationContainer />
+        <Navbar />
 
-          {/* NAVBAR */}
-          <Navbar />
-
-          {/* MAIN APP AREA */}
-          <main className="flex-grow-1">
-            <Suspense fallback={
+        <main className="flex-grow-1 ub-navbar-offset">
+          <Suspense
+            fallback={
               <div className="text-center py-5 mt-5">
                 <div className="spinner-border text-primary" role="status"></div>
                 <div className="mt-2 text-muted">Loading page...</div>
               </div>
-            }>
-              <Routes>
-                {/* PUBLIC ROUTES */}
-                <Route path="/" element={<Home />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/help" element={<About />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/property/:id" element={<PropertyDetail />} />
-                <Route path="/properties" element={<Home />} />
+            }
+          >
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/help" element={<About />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/property/:id" element={<PropertyDetail />} />
+              <Route path="/properties" element={<Home />} />
 
-                {/* PROTECTED LANDLORD ROUTES */}
-                <Route
-                  path="/create-listing"
-                  element={
-                    user && (user.role === "landlord" || user.role === "admin")
-                      ? <CreateProperty />
-                      : <Navigate to="/login" replace />
-                  }
-                />
+              <Route
+                path="/create-listing"
+                element={
+                  user && (user.role === "landlord" || user.role === "admin")
+                    ? <CreateProperty />
+                    : <Navigate to="/login" replace />
+                }
+              />
 
-                <Route
-                  path="/landlord"
-                  element={
-                    user && (user.role === "landlord" || user.role === "admin")
-                      ? <LandlordDashboard />
-                      : <Navigate to="/login" replace />
-                  }
-                />
+              <Route
+                path="/landlord"
+                element={
+                  user && (user.role === "landlord" || user.role === "admin")
+                    ? <LandlordDashboard />
+                    : <Navigate to="/login" replace />
+                }
+              />
 
-                {/* ADMIN ROUTE */}
-                <Route
-                  path="/admin"
-                  element={
-                    user?.role === "admin"
-                      ? <AdminDashboard />
-                      : <Navigate to="/" replace />
-                  }
-                />
+              <Route
+                path="/admin"
+                element={
+                  user?.role === "admin" ? <AdminDashboard /> : <Navigate to="/" replace />
+                }
+              />
 
-                {/* DEFAULT REDIRECT */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </Suspense>
-          </main>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </main>
 
-          {/* FOOTER */}
-          <Footer />
-        </div>
-      </BrowserRouter>
+        <Footer />
+      </div>
     </ErrorBoundary>
   );
 }

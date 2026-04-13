@@ -2,6 +2,12 @@
 
 ## Option 1: Fix XAMPP MySQL
 
+0. **Check Windows MySQL service first (common conflict):**
+   - Open `services.msc`
+   - Find `MySQL` / `MySQL96` / `MariaDB`
+   - If present, set Startup Type to `Manual` or `Automatic` and start it
+   - Or keep it stopped and make sure XAMPP uses a different port than that service
+
 1. **Check port conflict:**
    - Open XAMPP -> Config -> my.ini
    - Change `port=3306` to `port=3307`

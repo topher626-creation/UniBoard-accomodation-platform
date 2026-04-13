@@ -5,6 +5,7 @@ const auth = require("../middleware/auth");
 
 const router = express.Router();
 const SELF_REGISTER_ROLES = ["student", "landlord"];
+const USER_STATUSES = ["pending", "active", "disabled"];
 
 const isValidEmail = (value = "") =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).toLowerCase());
@@ -17,10 +18,13 @@ const signAuthToken = (userId) =>
 // Register
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, phone, role } = req.body;
+    const { name, email, password, phone, role, business_name, verification_document_url } = req.body;
     const normalizedName = (name || "").trim();
     const normalizedEmail = (email || "").trim().toLowerCase();
     const normalizedRole = role || "student";
+    const normalizedBusinessName = (business_name || "").trim();
+    const normalizedPhone = (phone || "").trim();
+    const normalizedVerificationDocUrl = (verification_document_url || "").trim();
 
     if (!normalizedName || !normalizedEmail || !password) {
       return res.status(400).json({ message: "Name, email and password are required" });
@@ -38,6 +42,14 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "Invalid registration role" });
     }
 
+    if (normalizedRole === "landlord" && !normalizedBusinessName) {
+      return res.status(400).json({ message: "Business or compound name is required for landlords" });
+    }
+
+    if (normalizedRole === "landlord" && normalizedVerificationDocUrl && !normalizedVerificationDocUrl.startsWith('http')) {
+      return res.status(400).json({ message: "Invalid verification document URL" });
+    }
+
     // Check if user exists
     const existingUser = await User.findOne({ where: { email: normalizedEmail } });
     if (existingUser) {
@@ -45,26 +57,46 @@ router.post("/register", async (req, res) => {
     }
 
     // Create user
+    let verificationUrl = null;
+    if (normalizedRole === "landlord" && normalizedVerificationDocUrl) {
+      verificationUrl = `${req.protocol}://${req.get('host')}/admin/verify/${crypto.randomUUID()}`;
+    }
+
     const user = await User.create({
       name: normalizedName,
       email: normalizedEmail,
       password,
-      phone,
-      role: normalizedRole
+      phone: normalizedPhone || null,
+      role: normalizedRole,
+      business_name: normalizedRole === "landlord" ? normalizedBusinessName : null,
+      verification_document_url: normalizedVerificationDocUrl || null,
+      verification_url: verificationUrl,
+      status: normalizedRole === "landlord" ? "pending" : "active",
+      isVerified: normalizedRole === "student"
     });
 
     // Generate token
     const token = signAuthToken(user.id);
 
+    const userResponse = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      phone: user.phone,
+      business_name: user.business_name,
+      status: user.status,
+      isVerified: user.isVerified,
+      verification_url: user.verification_url
+    };
+
     res.status(201).json({
-      message: "User registered successfully",
+      message:
+        normalizedRole === "landlord"
+          ? `Landlord account created (ID: ${user.id}). Awaiting admin approval. Verification link: ${user.verification_url || 'N/A'}`
+          : "User registered successfully",
       token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
+      user: userResponse
     });
   } catch (error) {
     res.status(500).json({ message: "Registration failed" });
@@ -91,6 +123,14 @@ router.post("/login", async (req, res) => {
       return res.status(403).json({ message: "Account suspended. Contact admin." });
     }
 
+    if (user.status === "disabled") {
+      return res.status(403).json({ message: "Account disabled. Contact admin." });
+    }
+
+    if (!USER_STATUSES.includes(user.status)) {
+      return res.status(403).json({ message: "Account status is invalid. Contact admin." });
+    }
+
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
@@ -108,6 +148,10 @@ router.post("/login", async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        phone: user.phone,
+        business_name: user.business_name,
+        status: user.status,
+        isVerified: user.isVerified,
         is_banned: user.is_banned
       }
     });
@@ -124,7 +168,10 @@ router.get("/me", auth, async (req, res) => {
       name: req.user.name,
       email: req.user.email,
       role: req.user.role,
-      phone: req.user.phone
+      phone: req.user.phone,
+      business_name: req.user.business_name,
+      status: req.user.status,
+      isVerified: req.user.isVerified
     }
   });
 });

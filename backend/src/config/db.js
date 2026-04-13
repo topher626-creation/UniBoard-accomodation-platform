@@ -1,21 +1,26 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
-// Check if we should use SQLite (for easier development without XAMPP)
-const useSQLite = process.env.DB_TYPE === 'sqlite' || !process.env.DB_HOST;
+// Use MySQL by default. Enable SQLite explicitly with DB_TYPE=sqlite.
+const dbType = (process.env.DB_TYPE || 'mysql').toLowerCase();
+const useSQLite = dbType === 'sqlite';
+const allowSQLiteFallback =
+  process.env.DB_FALLBACK_TO_SQLITE !== 'false' &&
+  process.env.NODE_ENV !== 'production';
 
 let sequelize;
+let activeDialect = 'mysql';
+let storagePath = './database/uniboard_dev.sqlite';
 
 if (useSQLite) {
-  // SQLite configuration - no XAMPP needed!
+  activeDialect = 'sqlite';
   sequelize = new Sequelize({
     dialect: 'sqlite',
-    storage: './database/uniboard_dev.sqlite',
+    storage: storagePath,
     logging: false
   });
-  console.log('Using SQLite database (no XAMPP needed)');
+  console.log('Using SQLite database');
 } else {
-  // MySQL/MariaDB configuration for production
   sequelize = new Sequelize(
     process.env.DB_NAME || 'uniboard_db',
     process.env.DB_USER || 'root',
@@ -45,10 +50,40 @@ if (useSQLite) {
 const connectDB = async () => {
   try {
     await sequelize.authenticate();
-    console.log('Database connected ✅');
+    console.log(`Database connected (${activeDialect})`);
+    return true;
   } catch (error) {
-    console.error('Database connection failed ❌:', error.message);
+    console.error(`Database connection failed (${activeDialect}):`, error.message);
+
+    if (activeDialect === 'mysql' && allowSQLiteFallback) {
+      console.warn(`Falling back to SQLite at ${storagePath} for local development.`);
+      activeDialect = 'sqlite';
+      sequelize = new Sequelize({
+        dialect: 'sqlite',
+        storage: storagePath,
+        logging: false
+      });
+      module.exports.sequelize = sequelize;
+
+      await sequelize.authenticate();
+      console.log(`Database connected (${activeDialect})`);
+      return true;
+    }
+
+    if (activeDialect === 'mysql') {
+      console.error('MySQL troubleshooting:');
+      console.error('1) Ensure MySQL is running and not blocked on the configured port.');
+      console.error('2) Confirm DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD are correct.');
+      console.error('3) If XAMPP keeps crashing, set DB_PORT=3307 and update XAMPP my.ini to port 3307.');
+    } else {
+      console.error('SQLite troubleshooting: ensure sqlite3 is installed and write permissions are available.');
+    }
+
+    throw error;
   }
 };
 
-module.exports = { sequelize, connectDB };
+const getSequelize = () => sequelize;
+const getActiveDialect = () => activeDialect;
+
+module.exports = { sequelize, connectDB, getSequelize, getActiveDialect };

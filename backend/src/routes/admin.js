@@ -27,7 +27,7 @@ router.get("/users", auth, requireAdmin, async (req, res) => {
 
 router.put("/users/:id", auth, requireAdmin, async (req, res) => {
   try {
-    const { role } = req.body;
+    const { role, status } = req.body;
 
     if (!["student", "landlord", "admin"].includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
@@ -38,7 +38,13 @@ router.put("/users/:id", auth, requireAdmin, async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    await user.update({ role });
+    const updates = { role };
+    if (status && ["pending", "active", "disabled"].includes(status)) {
+      updates.status = status;
+      updates.isVerified = status === "active";
+    }
+
+    await user.update(updates);
 
     const updatedUser = await User.findByPk(req.params.id, {
       attributes: { exclude: ["password"] }
@@ -48,6 +54,36 @@ router.put("/users/:id", auth, requireAdmin, async (req, res) => {
   } catch (error) {
     console.error("Error updating user:", error);
     res.status(500).json({ message: error.message });
+  }
+});
+
+router.patch("/users/:id/approve-landlord", auth, requireAdmin, async (req, res) => {
+  try {
+    const user = await User.findByPk(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.role !== "landlord") {
+      return res.status(400).json({ message: "Only landlord accounts can be approved" });
+    }
+
+    await user.update({
+      status: "active",
+      isVerified: true,
+      is_banned: false
+    });
+
+    const updatedUser = await User.findByPk(req.params.id, {
+      attributes: { exclude: ["password"] }
+    });
+
+    return res.json({
+      message: "Landlord approved successfully",
+      user: updatedUser
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to approve landlord" });
   }
 });
 
@@ -68,6 +104,14 @@ router.patch("/users/:id/ban", auth, requireAdmin, async (req, res) => {
     }
 
     await user.update({ is_banned: banned });
+    if (banned) {
+      await user.update({ status: "disabled" });
+    } else if (user.status === "disabled") {
+      await user.update({
+        status: user.role === "landlord" && !user.isVerified ? "pending" : "active"
+      });
+    }
+
     const updatedUser = await User.findByPk(req.params.id, {
       attributes: { exclude: ["password"] }
     });
@@ -237,6 +281,9 @@ router.get("/stats", auth, requireAdmin, async (req, res) => {
     const totalProperties = await Property.count();
     const approvedProperties = await Property.count({ where: { approved: true } });
     const pendingProperties = await Property.count({ where: { approved: false } });
+    const pendingLandlords = await User.count({
+      where: { role: "landlord", status: "pending" }
+    });
 
     const usersByRole = await User.findAll({
       attributes: [
@@ -258,6 +305,7 @@ router.get("/stats", auth, requireAdmin, async (req, res) => {
       totalProperties,
       approvedProperties,
       pendingProperties,
+      pendingLandlords,
       totalBookings: 0,
       totalRevenue: 0,
       usersByRole,

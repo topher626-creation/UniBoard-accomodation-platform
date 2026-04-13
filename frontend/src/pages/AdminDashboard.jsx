@@ -42,7 +42,7 @@ function AdminDashboard() {
     try {
       await api.updateUserRole(userId, newRole);
       fetchData();
-    } catch (error) {
+    } catch {
       alert("Failed to update role");
     }
   };
@@ -54,8 +54,33 @@ function AdminDashboard() {
     try {
       await api.banUser(userId, ban);
       fetchData();
-    } catch (error) {
+    } catch {
       alert("Failed to update user status");
+    }
+  };
+
+  const handleApproveLandlord = async (userId) => {
+    try {
+      await api.approveLandlord(userId);
+      fetchData();
+    } catch {
+      alert("Failed to approve landlord");
+    }
+  };
+
+  const handleRejectLandlord = async (userId) => {
+    if (
+      !window.confirm(
+        "Reject this landlord application? Their account will stay disabled and they cannot post listings."
+      )
+    ) {
+      return;
+    }
+    try {
+      await api.updateAdminUser(userId, { role: "landlord", status: "disabled" });
+      fetchData();
+    } catch {
+      alert("Failed to reject application");
     }
   };
 
@@ -66,7 +91,7 @@ function AdminDashboard() {
     try {
       await api.deleteUser(userId);
       fetchData();
-    } catch (error) {
+    } catch {
       alert("Failed to delete user");
     }
   };
@@ -75,7 +100,7 @@ function AdminDashboard() {
     try {
       await api.approveProperty(propertyId, approved);
       fetchData();
-    } catch (error) {
+    } catch {
       alert("Failed to update property");
     }
   };
@@ -87,17 +112,20 @@ function AdminDashboard() {
     try {
       await api.deletePropertyAdmin(propertyId);
       fetchData();
-    } catch (error) {
+    } catch {
       alert("Failed to delete property");
     }
   };
 
   const getStatusBadge = (user) => {
     if (user.is_banned) {
-      return <span className="badge bg-danger">Disabled</span>;
+      return <span className="badge bg-danger">Banned</span>;
     }
-    if (user.role === "pending" || !user.is_verified) {
+    if (user.status === "pending") {
       return <span className="badge bg-warning">Pending</span>;
+    }
+    if (user.status === "disabled") {
+      return <span className="badge bg-secondary">Disabled</span>;
     }
     return <span className="badge bg-success">Active</span>;
   };
@@ -155,8 +183,8 @@ function AdminDashboard() {
           </div>
           <div className="col-md-3">
             <div className="card dashboard-card p-3 text-center">
-              <h3 className="fw-bold text-info mb-1">{stats?.approvedProperties || 0}</h3>
-              <p className="text-muted mb-0">Approved</p>
+              <h3 className="fw-bold text-info mb-1">{stats?.pendingLandlords || 0}</h3>
+              <p className="text-muted mb-0">Pending Landlords</p>
             </div>
           </div>
         </div>
@@ -229,6 +257,22 @@ function AdminDashboard() {
                       <div className="d-flex gap-2">
                         {user.role !== "admin" && (
                           <>
+                            {user.role === "landlord" && user.status === "pending" && (
+                              <>
+                                <button
+                                  className="btn btn-sm btn-success"
+                                  onClick={() => handleApproveLandlord(user.id)}
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-outline-secondary"
+                                  onClick={() => handleRejectLandlord(user.id)}
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
                             <button
                               className={`btn btn-sm ${
                                 user.is_banned ? "btn-outline-success" : "btn-outline-danger"

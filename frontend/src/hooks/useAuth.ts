@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useAuthStore } from '@/stores/authStore';
-import { useUiStore, NotificationType } from '@/stores/uiStore';
+import { useUiStore } from '@/stores/uiStore';
 import { apiClient } from '@/lib/api';
 import { User } from '@/types';
 
@@ -80,7 +80,10 @@ export const useAuthActions = () => {
       email: string;
       password: string;
       name: string;
+      phone?: string;
       role: 'student' | 'landlord';
+      business_name?: string;
+      verification_document_url?: string;
     }) => {
       try {
         setLoading(true);
@@ -96,7 +99,11 @@ export const useAuthActions = () => {
         localStorage.setItem('token', response.token);
         localStorage.setItem('user', JSON.stringify(response.user));
 
-        handleSuccess('Account created successfully!');
+        handleSuccess(
+          response.user?.role === 'landlord' && response.user?.status === 'pending'
+            ? 'Landlord account created. Waiting for admin approval.'
+            : 'Account created successfully!'
+        );
         return response;
       } catch (error) {
         handleError(error, 'Registration failed');

@@ -184,6 +184,7 @@ router.get("/mine", auth, async (req, res) => {
     const formatted = properties.map((property) => ({
       id: property.id,
       name: property.name,
+      location: property.location,
       price: property.price,
       approved: property.approved,
       total_beds: property.total_beds,
@@ -242,6 +243,7 @@ router.get("/:id", async (req, res) => {
 
     const optionalUser = await getOptionalUser(req);
     const isAuthenticated = Boolean(optionalUser);
+    const isGuest = !isAuthenticated;
 
     if (!isAuthenticated && !property.approved) {
       return res.status(404).json({ message: "Property not found" });
@@ -255,27 +257,27 @@ router.get("/:id", async (req, res) => {
     const response = {
       id: property.id,
       name: property.name,
-      description: property.description,
+      description: isGuest ? property.description.substring(0, 100) + '...' : property.description,
       location: property.location,
       price: property.price,
       room_type: property.room_type,
-      total_beds: property.total_beds,
-      occupied_beds: property.occupied_beds,
-      available_beds: property.total_beds - property.occupied_beds,
-      availability_status: getAvailabilityStatus(property.total_beds - property.occupied_beds),
+      total_beds: isGuest ? null : property.total_beds,
+      occupied_beds: isGuest ? null : property.occupied_beds,
+      available_beds: isGuest ? null : (property.total_beds - property.occupied_beds),
+      availability_status: isGuest ? null : getAvailabilityStatus(property.total_beds - property.occupied_beds),
       approved: property.approved,
-      images: property.images.map(img => img.image_url),
-      features: property.features.map(feat => feat.feature),
+      images: isGuest ? (property.images[0] ? [property.images[0].image_url] : []) : property.images.map(img => img.image_url),
+      features: isGuest ? [] : property.features.map(feat => feat.feature),
       building: property.building?.name,
       compound: property.building?.compound?.name,
       average_rating: parseFloat(averageRating),
       review_count: reviewCount,
-      landlord: isAuthenticated ? {
+      landlord: isGuest ? { name: property.landlord?.name } : {
         name: property.landlord?.name,
         phone: property.phone || property.landlord?.phone,
         whatsapp: property.whatsapp || property.landlord?.phone,
         email: property.landlord?.email || null
-      } : null
+      }
     };
 
     res.json(response);
@@ -290,6 +292,10 @@ router.post("/", auth, async (req, res) => {
   try {
     if (req.user.role !== "landlord" && req.user.role !== "admin") {
       return res.status(403).json({ message: "Only landlords and admins can create properties" });
+    }
+
+    if (req.user.role === "landlord" && req.user.status !== "active") {
+      return res.status(403).json({ message: "Your landlord account is awaiting admin approval" });
     }
 
     const {
@@ -307,7 +313,7 @@ router.post("/", auth, async (req, res) => {
       images
     } = req.body;
 
-    const allowedRoomTypes = ["single", "bedsitter", "self-contained"];
+    const allowedRoomTypes = ["single", "bedsitter", "self-contained", "bunkered"];
     const parsedPrice = Number(price);
     const parsedTotalBeds = Number(total_beds);
     const parsedOccupiedBeds = occupied_beds === undefined ? 0 : Number(occupied_beds);
@@ -400,6 +406,10 @@ router.put("/:id", auth, async (req, res) => {
       return res.status(403).json({ message: "Not authorized to update properties" });
     }
 
+    if (req.user.role === "landlord" && req.user.status !== "active") {
+      return res.status(403).json({ message: "Your landlord account is awaiting admin approval" });
+    }
+
     const property = await Property.findByPk(req.params.id);
 
     if (!property) {
@@ -479,6 +489,10 @@ router.patch("/:id/occupancy", auth, async (req, res) => {
   try {
     if (req.user.role !== "landlord" && req.user.role !== "admin") {
       return res.status(403).json({ message: "Not authorized to manage occupancy" });
+    }
+
+    if (req.user.role === "landlord" && req.user.status !== "active") {
+      return res.status(403).json({ message: "Your landlord account is awaiting admin approval" });
     }
 
     const { action } = req.body;

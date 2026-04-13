@@ -1,0 +1,47 @@
+.step-indicator {
+  margin-bottom: 2rem;
+}
+.step-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e9ecef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  color: #6c757d;
+  transition: all 0.3s;
+}
+.step-circle.active {
+  background: #0d6efd;
+  color: white;
+  box-shadow: 0 0 0 3px rgba(13,110,253,.25);
+}
+.step-line {
+  flex: 1;
+  height: 2px;
+  background: #e9ecef;
+  margin: 0 8px;
+  transition: background 0.3s;
+}
+.step-line.active {
+  background: #0d6efd;
+}
+.role-card {
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.role-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.dropzone {
+  transition: all 0.2s;
+  border: 2px dashed #dee2e6 !important;
+}
+.dropzone:hover {
+  border-color: #0d6efd !important;
+  background-color: rgba(13,110,253,0.05);
+}

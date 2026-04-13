@@ -1,7 +1,23 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import {
+  Sun,
+  Moon,
+  Home,
+  Info,
+  HelpCircle,
+  Plus,
+  Search,
+  User,
+  LayoutDashboard,
+  Settings,
+  LogOut,
+  LogIn,
+  UserPlus,
+} from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";
 import { AuthModal } from "../auth/AuthModal";
+import { BrandLogo } from "../BrandLogo";
 import "./Navbar.css";
 
 function Navbar() {
@@ -29,10 +45,9 @@ function Navbar() {
     navigate("/");
   };
 
-  const getThemeIcon = () => {
-    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-    return isDark ? "🌙" : "☀️";
-  };
+  const [themeDark, setThemeDark] = useState(
+    () => typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "dark"
+  );
 
   const toggleTheme = () => {
     const html = document.documentElement;
@@ -40,16 +55,15 @@ function Navbar() {
     const newTheme = currentTheme === "dark" ? "light" : "dark";
     html.setAttribute("data-theme", newTheme);
     localStorage.setItem("theme", newTheme);
+    setThemeDark(newTheme === "dark");
   };
 
   return (
     <>
-      <nav className="navbar navbar-expand-lg sticky-top">
+      <nav className="navbar navbar-expand-lg sticky-top ub-navbar">
         <div className="container">
           {/* Logo */}
-          <Link className="navbar-brand d-flex align-items-center" to="/">
-            <span className="fs-4 fw-bold">🏠 UniBoard</span>
-          </Link>
+          <BrandLogo height={44} className="navbar-brand py-1" />
 
           {/* Desktop Navigation */}
           <div className="d-none d-lg-flex align-items-center gap-4">
@@ -70,11 +84,13 @@ function Navbar() {
           <div className="d-none d-lg-flex align-items-center gap-3">
             {/* Theme Toggle */}
             <button
+              type="button"
               className="btn btn-link text-dark p-2"
               onClick={toggleTheme}
-              title="Toggle theme"
+              title={themeDark ? "Switch to light mode" : "Switch to dark mode"}
+              aria-label={themeDark ? "Switch to light mode" : "Switch to dark mode"}
             >
-              {getThemeIcon()}
+              {themeDark ? <Sun size={22} /> : <Moon size={22} />}
             </button>
 
             {user ? (
@@ -150,15 +166,23 @@ function Navbar() {
         </div>
       </nav>
 
+      {/* Mobile Offcanvas Backdrop */}
+      {showOffcanvas && (
+        <div
+          className="ub-offcanvas-backdrop"
+          onClick={() => setShowOffcanvas(false)}
+        />
+      )}
+
       {/* Mobile Offcanvas Menu */}
       <div
         className={`offcanvas offcanvas-end ${showOffcanvas ? "show" : ""}`}
         tabIndex="-1"
-        style={{ visibility: showOffcanvas ? "visible" : "hidden" }}
+        style={{ visibility: showOffcanvas ? "visible" : "hidden", zIndex: 1040 }}
       >
         <div className="offcanvas-header">
-          <h5 className="offcanvas-title">
-            <span className="fw-bold text-primary">🏠 UniBoard</span>
+          <h5 className="offcanvas-title mb-0">
+            <BrandLogo height={36} />
           </h5>
           <button
             type="button"
@@ -171,28 +195,28 @@ function Navbar() {
             <li className="nav-item">
               <Link
                 to="/"
-                className="nav-link text-dark py-2"
+                className="nav-link text-dark py-2 d-flex align-items-center gap-2"
                 onClick={() => setShowOffcanvas(false)}
               >
-                🏠 Home
+                <Home size={18} aria-hidden /> Home
               </Link>
             </li>
             <li className="nav-item">
               <Link
                 to="/about"
-                className="nav-link text-dark py-2"
+                className="nav-link text-dark py-2 d-flex align-items-center gap-2"
                 onClick={() => setShowOffcanvas(false)}
               >
-                ℹ️ About Us
+                <Info size={18} aria-hidden /> About Us
               </Link>
             </li>
             <li className="nav-item">
               <Link
                 to="/help"
-                className="nav-link text-dark py-2"
+                className="nav-link text-dark py-2 d-flex align-items-center gap-2"
                 onClick={() => setShowOffcanvas(false)}
               >
-                ❓ Help
+                <HelpCircle size={18} aria-hidden /> Help
               </Link>
             </li>
 
@@ -200,10 +224,10 @@ function Navbar() {
               <li className="nav-item">
                 <Link
                   to="/create-listing"
-                  className="nav-link text-dark py-2"
+                  className="nav-link text-dark py-2 d-flex align-items-center gap-2"
                   onClick={() => setShowOffcanvas(false)}
                 >
-                  ➕ List Property
+                  <Plus size={18} aria-hidden /> List Property
                 </Link>
               </li>
             )}
@@ -211,10 +235,10 @@ function Navbar() {
             <li className="nav-item">
               <Link
                 to="/properties"
-                className="nav-link text-dark py-2"
+                className="nav-link text-dark py-2 d-flex align-items-center gap-2"
                 onClick={() => setShowOffcanvas(false)}
               >
-                🔍 Browse Bedspaces
+                <Search size={18} aria-hidden /> Browse bedspaces
               </Link>
             </li>
           </ul>
@@ -223,10 +247,12 @@ function Navbar() {
 
           {/* Theme Toggle */}
           <button
-            className="btn btn-link text-dark w-100 text-start py-2"
+            type="button"
+            className="btn btn-link text-dark w-100 text-start py-2 d-flex align-items-center gap-2"
             onClick={toggleTheme}
           >
-            {getThemeIcon()} {getThemeIcon() === "🌙" ? "Light Mode" : "Dark Mode"}
+            {themeDark ? <Sun size={18} /> : <Moon size={18} />}
+            {themeDark ? "Light mode" : "Dark mode"}
           </button>
 
           <hr />
@@ -235,49 +261,52 @@ function Navbar() {
             <div className="d-flex flex-column gap-2">
               <Link
                 to="/profile"
-                className="btn btn-outline-primary"
+                className="btn btn-outline-primary d-flex align-items-center justify-content-center gap-2"
                 onClick={() => setShowOffcanvas(false)}
               >
-                👤 Profile
+                <User size={18} /> Profile
               </Link>
               {(user.role === "landlord" || user.role === "admin") && (
                 <Link
                   to="/landlord"
-                  className="btn btn-outline-primary"
+                  className="btn btn-outline-primary d-flex align-items-center justify-content-center gap-2"
                   onClick={() => setShowOffcanvas(false)}
                 >
-                  📊 Dashboard
+                  <LayoutDashboard size={18} /> Dashboard
                 </Link>
               )}
               {user.role === "admin" && (
                 <Link
                   to="/admin"
-                  className="btn btn-outline-primary"
+                  className="btn btn-outline-primary d-flex align-items-center justify-content-center gap-2"
                   onClick={() => setShowOffcanvas(false)}
                 >
-                  ⚙️ Admin
+                  <Settings size={18} /> Admin
                 </Link>
               )}
               <button
-                className="btn btn-outline-danger"
+                type="button"
+                className="btn btn-outline-danger d-flex align-items-center justify-content-center gap-2"
                 onClick={handleLogout}
               >
-                🚪 Logout
+                <LogOut size={18} /> Logout
               </button>
             </div>
           ) : (
             <div className="d-flex flex-column gap-2">
               <button
-                className="btn btn-outline-primary w-100"
+                type="button"
+                className="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2"
                 onClick={openLogin}
               >
-                🔐 Login
+                <LogIn size={18} /> Login
               </button>
               <button
-                className="btn btn-primary w-100"
+                type="button"
+                className="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2"
                 onClick={openRegister}
               >
-                📝 Register
+                <UserPlus size={18} /> Register
               </button>
             </div>
           )}

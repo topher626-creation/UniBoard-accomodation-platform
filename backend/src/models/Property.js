@@ -38,7 +38,7 @@ const Property = sequelize.define('Property', {
     allowNull: true
   },
   room_type: {
-    type: DataTypes.ENUM('single', 'bedsitter', 'self-contained'),
+    type: DataTypes.ENUM('single', 'bedsitter', 'self-contained', 'bunkered'),
     allowNull: true
   },
   total_beds: {

@@ -46,6 +46,10 @@ router.post("/", auth, async (req, res) => {
       return res.status(403).json({ message: "Only landlords can create compounds" });
     }
 
+    if (req.user.status !== "active") {
+      return res.status(403).json({ message: "Your landlord account is awaiting admin approval" });
+    }
+
     const { name, location } = req.body;
 
     const compound = await Compound.create({

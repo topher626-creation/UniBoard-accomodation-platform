@@ -26,7 +26,7 @@ router.get("/profile", auth, async (req, res) => {
 // Update user profile
 router.put("/profile", auth, async (req, res) => {
   try {
-    const { name, phone } = req.body;
+    const { name, phone, business_name } = req.body;
 
     const user = await User.findByPk(req.user.id);
     if (!user) {
@@ -40,7 +40,11 @@ router.put("/profile", auth, async (req, res) => {
 
     await user.update({
       name: name ? name.trim() : user.name,
-      phone: phone !== undefined ? phone : user.phone
+      phone: phone !== undefined ? phone : user.phone,
+      business_name:
+        user.role === "landlord" && business_name !== undefined
+          ? String(business_name).trim()
+          : user.business_name
     });
 
     const updatedUser = await User.findByPk(req.user.id, {
