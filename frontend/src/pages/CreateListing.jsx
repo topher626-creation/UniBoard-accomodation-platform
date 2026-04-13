@@ -6,7 +6,6 @@ import { useNavigate } from "react-router-dom";
 export default function CreateListing() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
 
@@ -43,7 +42,8 @@ export default function CreateListing() {
 
     const parsedUser = JSON.parse(userData);
     if (parsedUser.role !== "landlord" && parsedUser.role !== "admin") {
-      setError("Only landlords can create listings");
+      console.error("Only landlords can create listings");
+      navigate("/");
       return;
     }
 
@@ -106,8 +106,8 @@ export default function CreateListing() {
       }
 
       setImages(prev => [...prev, ...uploadedUrls]);
-    } catch (error) {
-      setError("Failed to upload images");
+    } catch (err) {
+      console.error("Failed to upload images:", err);
     } finally {
       setUploading(false);
     }
@@ -116,7 +116,6 @@ export default function CreateListing() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
     setSuccess("");
 
     try {
@@ -149,8 +148,9 @@ export default function CreateListing() {
 
       // Redirect to home after 2 seconds
       setTimeout(() => navigate("/"), 2000);
-    } catch (error) {
-      setError(error.response?.data?.message || "Failed to create listing");
+    } catch (err) {
+      console.error("Failed to create listing:", err);
+      setSuccess("Failed to create listing. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -179,18 +179,6 @@ export default function CreateListing() {
     <div style={{ padding: "40px", maxWidth: "800px", margin: "auto" }}>
       <h1>Create Property Listing</h1>
       <p>Fill in the details to list your property on UniBoard</p>
-
-      {error && (
-        <div style={{
-          color: "red",
-          marginBottom: "20px",
-          padding: "10px",
-          border: "1px solid red",
-          borderRadius: "5px"
-        }}>
-          {error}
-        </div>
-      )}
 
       {success && (
         <div style={{

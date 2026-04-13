@@ -8,6 +8,8 @@ const Property = require('./Property');
 const PropertyImage = require('./PropertyImage');
 const PropertyFeature = require('./PropertyFeature');
 const Review = require('./Review');
+const Booking = require('./Booking');
+const Favorite = require('./Favorite');
 
 // Define associations
 User.hasMany(Compound, { foreignKey: 'landlord_id', as: 'compounds' });
@@ -35,6 +37,20 @@ Review.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 Property.hasMany(Review, { foreignKey: 'listing_id', as: 'reviews' });
 Review.belongsTo(Property, { foreignKey: 'listing_id', as: 'listing' });
 
+// Booking associations
+User.hasMany(Booking, { foreignKey: 'user_id', as: 'bookings' });
+Booking.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
+Property.hasMany(Booking, { foreignKey: 'property_id', as: 'bookings' });
+Booking.belongsTo(Property, { foreignKey: 'property_id', as: 'property' });
+
+// Favorite associations
+User.hasMany(Favorite, { foreignKey: 'user_id', as: 'favorites' });
+Favorite.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
+Property.hasMany(Favorite, { foreignKey: 'property_id', as: 'favoritedBy' });
+Favorite.belongsTo(Property, { foreignKey: 'property_id', as: 'property' });
+
 // Sync database (only in development)
 if (process.env.NODE_ENV !== 'production') {
   sequelize.sync({ alter: false }).then(() => {
@@ -52,5 +68,7 @@ module.exports = {
   Property,
   PropertyImage,
   PropertyFeature,
-  Review
+  Review,
+  Booking,
+  Favorite
 };

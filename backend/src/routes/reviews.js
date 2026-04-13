@@ -1,5 +1,5 @@
 const express = require("express");
-const Review = require("../models/Review");
+const { Review, User, Listing } = require("../models");
 const auth = require("../middleware/auth");
 
 const router = express.Router();
@@ -7,9 +7,17 @@ const router = express.Router();
 // Get reviews for a listing
 router.get("/listing/:listingId", async (req, res) => {
   try {
-    const reviews = await Review.find({ listing: req.params.listingId })
-      .populate("user", "name")
-      .sort({ createdAt: -1 });
+    const reviews = await Review.findAll({
+      where: { listing_id: req.params.listingId },
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['name']
+        }
+      ],
+      order: [['created_at', 'DESC']]
+    });
 
     // Calculate average rating
     const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
@@ -32,25 +40,35 @@ router.post("/", auth, async (req, res) => {
 
     // Check if user already reviewed this listing
     const existingReview = await Review.findOne({
-      user: req.user._id,
-      listing: listingId
+      where: {
+        user_id: req.user.id,
+        listing_id: listingId
+      }
     });
 
     if (existingReview) {
       return res.status(400).json({ message: "You have already reviewed this listing" });
     }
 
-    const review = new Review({
-      user: req.user._id,
-      listing: listingId,
+    const review = await Review.create({
+      user_id: req.user.id,
+      listing_id: listingId,
       rating,
       comment
     });
 
-    await review.save();
-    await review.populate("user", "name");
+    // Fetch the created review with user data
+    const reviewWithUser = await Review.findByPk(review.id, {
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['name']
+        }
+      ]
+    });
 
-    res.status(201).json(review);
+    res.status(201).json(reviewWithUser);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -59,13 +77,13 @@ router.post("/", auth, async (req, res) => {
 // Update a review (review owner only)
 router.put("/:id", auth, async (req, res) => {
   try {
-    const review = await Review.findById(req.params.id);
+    const review = await Review.findByPk(req.params.id);
 
     if (!review) {
       return res.status(404).json({ message: "Review not found" });
     }
 
-    if (review.user.toString() !== req.user._id.toString()) {
+    if (review.user_id !== req.user.id) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
@@ -74,9 +92,19 @@ router.put("/:id", auth, async (req, res) => {
     review.comment = comment;
 
     await review.save();
-    await review.populate("user", "name");
 
-    res.json(review);
+    // Fetch updated review with user data
+    const updatedReview = await Review.findByPk(review.id, {
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['name']
+        }
+      ]
+    });
+
+    res.json(updatedReview);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -85,17 +113,17 @@ router.put("/:id", auth, async (req, res) => {
 // Delete a review (review owner or admin)
 router.delete("/:id", auth, async (req, res) => {
   try {
-    const review = await Review.findById(req.params.id);
+    const review = await Review.findByPk(req.params.id);
 
     if (!review) {
       return res.status(404).json({ message: "Review not found" });
     }
 
-    if (review.user.toString() !== req.user._id.toString() && req.user.role !== "admin") {
+    if (review.user_id !== req.user.id && req.user.role !== "admin") {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    await Review.findByIdAndDelete(req.params.id);
+    await review.destroy();
     res.json({ message: "Review deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });

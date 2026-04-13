@@ -1,5 +1,5 @@
 const express = require("express");
-const Listing = require("../models/Listing");
+const { Listing, User } = require("../models");
 const auth = require("../middleware/auth");
 
 const router = express.Router();
@@ -8,20 +8,28 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const { area } = req.query;
-    
+
     // Try to fetch from database first
     let listings = [];
     let dbAvailable = false;
 
     try {
-      let query = { availability: true };
+      let whereClause = { availability: true };
       if (area) {
-        query.locationArea = area;
+        whereClause.location_area = area;
       }
-      
-      listings = await Listing.find(query)
-        .populate("landlord", "name email phone")
-        .sort({ createdAt: -1 });
+
+      listings = await Listing.findAll({
+        where: whereClause,
+        include: [
+          {
+            model: User,
+            as: 'landlord',
+            attributes: ['name', 'email', 'phone']
+          }
+        ],
+        order: [['created_at', 'DESC']]
+      });
       dbAvailable = true;
     } catch (dbError) {
       console.log("Database not available, using mock data");
@@ -31,54 +39,54 @@ router.get("/", async (req, res) => {
     if (!dbAvailable || listings.length === 0) {
       let mockListings = [
         {
-          _id: "1",
+          id: "1",
           title: "Cozy Single Room Near UNZA",
           price: 1500,
-          roomType: "single",
-          createdAt: new Date().toISOString(),
-          locationArea: "Garneton",
+          room_type: "single",
+          created_at: new Date().toISOString(),
+          location_area: "Garneton",
           location: { general: "Near University of Zambia", exact: "123 Great East Road, Lusaka" },
           images: ["https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400"],
           description: "A comfortable single room with all amenities. Perfect for students studying at the University of Zambia. Includes WiFi, shared kitchen, and laundry facilities. Walking distance to campus.",
           amenities: ["WiFi", "Kitchen", "Laundry", "Security"],
-          contactInfo: { phone: "+260955123456", email: "landlord@uniboard.com" },
+          contact_info: { phone: "+260955123456", email: "landlord@uniboard.com" },
           landlord: { name: "John Property Manager", email: "landlord@uniboard.com", phone: "+260955123456" }
         },
         {
-          _id: "2",
+          id: "2",
           title: "Shared Apartment - Budget Friendly",
           price: 800,
-          roomType: "shared",
-          createdAt: new Date().toISOString(),
-          locationArea: "Zambia Compound",
+          room_type: "shared",
+          created_at: new Date().toISOString(),
+          location_area: "Zambia Compound",
           location: { general: "Near Cavendish University", exact: "45 Independence Avenue, Lusaka" },
           images: ["https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400"],
           description: "Affordable shared apartment for 3 students. Each room has study desk and chair. Common areas include living room, kitchen, and bathroom. 24/7 security guard.",
           amenities: ["WiFi", "Shared Kitchen", "Security", "Parking"],
-          contactInfo: { phone: "+260955123456", email: "landlord@uniboard.com" },
+          contact_info: { phone: "+260955123456", email: "landlord@uniboard.com" },
           landlord: { name: "John Property Manager", email: "landlord@uniboard.com", phone: "+260955123456" }
         },
         {
-          _id: "3",
+          id: "3",
           title: "Modern Studio Apartment",
           price: 2200,
-          roomType: "apartment",
-          createdAt: new Date().toISOString(),
-          locationArea: "Halawa",
+          room_type: "apartment",
+          created_at: new Date().toISOString(),
+          location_area: "Halawa",
           location: { general: "Near Lusaka Business Park", exact: "78 Addis Ababa Drive, Lusaka" },
           images: ["https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=400"],
           description: "Self-contained studio apartment with modern furnishings. Perfect for postgraduate students. Includes private bathroom, kitchenette, and balcony. Close to shopping centers.",
           amenities: ["WiFi", "Private Kitchen", "Balcony", "Parking", "Gym Access"],
-          contactInfo: { phone: "+260955123456", email: "landlord@uniboard.com" },
+          contact_info: { phone: "+260955123456", email: "landlord@uniboard.com" },
           landlord: { name: "John Property Manager", email: "landlord@uniboard.com", phone: "+260955123456" }
         }
       ];
-      
+
       // Filter by area if specified
       if (area) {
-        mockListings = mockListings.filter(listing => listing.locationArea === area);
+        mockListings = mockListings.filter(listing => listing.location_area === area);
       }
-      
+
       listings = mockListings;
     }
 
@@ -99,11 +107,11 @@ router.get("/", async (req, res) => {
     // Transform listings based on visibility
     const transformedListings = listings.map(listing => {
       const baseData = {
-        _id: listing._id,
+        id: listing.id,
         title: listing.title,
         price: listing.price,
-        roomType: listing.roomType,
-        createdAt: listing.createdAt
+        room_type: listing.room_type,
+        created_at: listing.created_at
       };
 
       if (!isAuthenticated) {
@@ -126,7 +134,7 @@ router.get("/", async (req, res) => {
           location: listing.location,
           images: listing.images,
           amenities: listing.amenities,
-          contactInfo: listing.contactInfo,
+          contact_info: listing.contact_info,
           landlord: listing.landlord || listing.landlord,
           isPreview: false
         };
@@ -142,8 +150,15 @@ router.get("/", async (req, res) => {
 // Get single listing with visibility control
 router.get("/:id", async (req, res) => {
   try {
-    const listing = await Listing.findById(req.params.id)
-      .populate("landlord", "name email phone");
+    const listing = await Listing.findByPk(req.params.id, {
+      include: [
+        {
+          model: User,
+          as: 'landlord',
+          attributes: ['name', 'email', 'phone']
+        }
+      ]
+    });
 
     if (!listing || !listing.availability) {
       return res.status(404).json({ message: "Listing not found" });
@@ -158,8 +173,7 @@ router.get("/:id", async (req, res) => {
       try {
         const jwt = require("jsonwebtoken");
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const User = require("../models/User");
-        currentUser = await User.findById(decoded.userId);
+        currentUser = await User.findByPk(decoded.userId);
         isAuthenticated = true;
       } catch (error) {
         // Token invalid
@@ -167,11 +181,11 @@ router.get("/:id", async (req, res) => {
     }
 
     const baseData = {
-      _id: listing._id,
+      id: listing.id,
       title: listing.title,
       price: listing.price,
-      roomType: listing.roomType,
-      createdAt: listing.createdAt
+      room_type: listing.room_type,
+      created_at: listing.created_at
     };
 
     if (!isAuthenticated) {
@@ -194,15 +208,15 @@ router.get("/:id", async (req, res) => {
       location: listing.location,
       images: listing.images,
       amenities: listing.amenities,
-      landlordPhoneNumber: listing.landlordPhoneNumber,
-      paymentInstructions: listing.paymentInstructions,
-      contactInfo: listing.contactInfo,
+      landlord_phone_number: listing.landlord_phone_number,
+      payment_instructions: listing.payment_instructions,
+      contact_info: listing.contact_info,
       landlord: listing.landlord,
       isPreview: false
     };
 
     // Add edit permissions for landlord owner
-    if (currentUser && currentUser._id.toString() === listing.landlord._id.toString()) {
+    if (currentUser && currentUser.id === listing.landlord_id) {
       fullData.isOwner = true;
     }
 
@@ -219,17 +233,25 @@ router.post("/", auth, async (req, res) => {
       return res.status(403).json({ message: "Only landlords can create listings" });
     }
 
-    const listing = new Listing({
+    const listing = await Listing.create({
       ...req.body,
-      landlord: req.user._id
+      landlord_id: req.user.id
     });
 
-    await listing.save();
-    await listing.populate("landlord", "name email phone");
+    // Fetch the created listing with landlord data
+    const listingWithLandlord = await Listing.findByPk(listing.id, {
+      include: [
+        {
+          model: User,
+          as: 'landlord',
+          attributes: ['name', 'email', 'phone']
+        }
+      ]
+    });
 
     res.status(201).json({
       message: "Listing created successfully",
-      listing
+      listing: listingWithLandlord
     });
   } catch (error) {
     console.error("Error creating listing:", error);
@@ -240,21 +262,31 @@ router.post("/", auth, async (req, res) => {
 // Update listing (owner only)
 router.put("/:id", auth, async (req, res) => {
   try {
-    const listing = await Listing.findById(req.params.id);
+    const listing = await Listing.findByPk(req.params.id);
 
     if (!listing) {
       return res.status(404).json({ message: "Listing not found" });
     }
 
-    if (listing.landlord.toString() !== req.user._id.toString() && req.user.role !== "admin") {
+    if (listing.landlord_id !== req.user.id && req.user.role !== "admin") {
       return res.status(403).json({ message: "Not authorized" });
     }
 
     Object.assign(listing, req.body);
     await listing.save();
-    await listing.populate("landlord", "name email phone");
 
-    res.json(listing);
+    // Fetch updated listing with landlord data
+    const updatedListing = await Listing.findByPk(listing.id, {
+      include: [
+        {
+          model: User,
+          as: 'landlord',
+          attributes: ['name', 'email', 'phone']
+        }
+      ]
+    });
+
+    res.json(updatedListing);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -263,17 +295,17 @@ router.put("/:id", auth, async (req, res) => {
 // Delete listing (owner only)
 router.delete("/:id", auth, async (req, res) => {
   try {
-    const listing = await Listing.findById(req.params.id);
+    const listing = await Listing.findByPk(req.params.id);
 
     if (!listing) {
       return res.status(404).json({ message: "Listing not found" });
     }
 
-    if (listing.landlord.toString() !== req.user._id.toString() && req.user.role !== "admin") {
+    if (listing.landlord_id !== req.user.id && req.user.role !== "admin") {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    await Listing.findByIdAndDelete(req.params.id);
+    await listing.destroy();
     res.json({ message: "Listing deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -283,13 +315,21 @@ router.delete("/:id", auth, async (req, res) => {
 // Get listings by landlord
 router.get("/landlord/:landlordId", auth, async (req, res) => {
   try {
-    if (req.user._id.toString() !== req.params.landlordId && req.user.role !== "admin") {
+    if (req.user.id !== parseInt(req.params.landlordId) && req.user.role !== "admin") {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    const listings = await Listing.find({ landlord: req.params.landlordId })
-      .populate("landlord", "name email phone")
-      .sort({ createdAt: -1 });
+    const listings = await Listing.findAll({
+      where: { landlord_id: req.params.landlordId },
+      include: [
+        {
+          model: User,
+          as: 'landlord',
+          attributes: ['name', 'email', 'phone']
+        }
+      ],
+      order: [['created_at', 'DESC']]
+    });
 
     res.json(listings);
   } catch (error) {

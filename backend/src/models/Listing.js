@@ -1,78 +1,90 @@
-const mongoose = require("mongoose");
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/db');
 
-const listingSchema = new mongoose.Schema({
-  landlord: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true
+const Listing = sequelize.define('Listing', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
   },
-  title: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  description: {
-    type: String,
-    required: true
-  },
-  price: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  locationArea: {
-    type: String,
-    enum: ["Garneton", "Zambia Compound", "Halawa", "Pathfinder", "Big Brothers"],
-    required: true
-  },
-  location: {
-    general: {
-      type: String,
-      required: true // e.g., "Near University of Zambia"
-    },
-    exact: {
-      type: String,
-      required: true // e.g., "123 Main Street, Lusaka"
+  landlord_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'id'
     }
   },
-  images: [{
-    type: String, // Cloudinary URLs
-    required: true
-  }],
+  title: {
+    type: DataTypes.STRING(255),
+    allowNull: false,
+    validate: {
+      notEmpty: true
+    }
+  },
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: false
+  },
+  price: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    validate: {
+      min: 0
+    }
+  },
+  location_area: {
+    type: DataTypes.ENUM('Garneton', 'Zambia Compound', 'Halawa', 'Pathfinder', 'Big Brothers'),
+    allowNull: false
+  },
+  location_general: {
+    type: DataTypes.STRING(255),
+    allowNull: false
+  },
+  location_exact: {
+    type: DataTypes.STRING(255),
+    allowNull: false
+  },
+  images: {
+    type: DataTypes.JSON, // Store as JSON array of Cloudinary URLs
+    allowNull: false,
+    validate: {
+      notEmpty: true
+    }
+  },
   availability: {
-    type: Boolean,
-    default: true
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
   },
-  roomType: {
-    type: String,
-    enum: ["single", "shared", "apartment", "house"],
-    default: "single"
+  room_type: {
+    type: DataTypes.ENUM('single', 'shared', 'apartment', 'house'),
+    defaultValue: 'single'
   },
-  amenities: [{
-    type: String // e.g., ["WiFi", "Kitchen", "Laundry"]
-  }],
-  landlordPhoneNumber: {
-    type: String,
-    required: true // e.g., "+260955123456"
+  amenities: {
+    type: DataTypes.JSON, // Store as JSON array
+    defaultValue: []
   },
-  paymentInstructions: {
-    type: String, // e.g., "MTN: 0955123456" or "Bank: Account #12345"
-    required: true
+  landlord_phone_number: {
+    type: DataTypes.STRING(20),
+    allowNull: false
+  },
+  payment_instructions: {
+    type: DataTypes.TEXT,
+    allowNull: false
   },
   visibility: {
-    type: String,
-    enum: ["public", "authenticated", "private"],
-    default: "authenticated"
+    type: DataTypes.ENUM('public', 'authenticated', 'private'),
+    defaultValue: 'authenticated'
   },
-  contactInfo: {
-    phone: String,
-    email: String
+  contact_info: {
+    type: DataTypes.JSON, // Store phone and email as JSON
+    defaultValue: {}
   }
 }, {
-  timestamps: true
+  tableName: 'listings',
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at'
 });
 
-// Index for search
-listingSchema.index({ title: "text", description: "text", "location.general": "text" });
-
-module.exports = mongoose.model("Listing", listingSchema);
+module.exports = Listing;

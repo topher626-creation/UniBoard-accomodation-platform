@@ -1,10 +1,11 @@
 const express = require("express");
-const { Op } = require('sequelize');
+const { Op, literal } = require('sequelize');
 const jwt = require("jsonwebtoken");
-const { Property, PropertyImage, PropertyFeature, User, Building, Compound } = require("../models");
+const { Property, PropertyImage, PropertyFeature, User, Building, Compound, Review } = require("../models");
 const auth = require("../middleware/auth");
 
 const router = express.Router();
+
 const getAvailabilityStatus = (availableBeds) => {
   if (availableBeds <= 0) return "FULL";
   if (availableBeds <= 5) return "LOW";
@@ -28,10 +29,22 @@ const getOptionalUser = async (req) => {
   }
 };
 
-// Get all properties (public - limited info for non-authenticated users)
+// Get all properties with advanced filtering and pagination
 router.get("/", async (req, res) => {
   try {
-    const { search, location, approved } = req.query;
+    const { 
+      search, 
+      location, 
+      approved,
+      price_min,
+      price_max,
+      room_type,
+      available_only,
+      sort_by = 'created_at',
+      sort_order = 'DESC',
+      page = 1,
+      limit = 20
+    } = req.query;
 
     let whereClause = {};
 
@@ -41,6 +54,7 @@ router.get("/", async (req, res) => {
         [Op.or]: [
           { name: { [Op.like]: `%${search}%` } },
           { location: { [Op.like]: `%${search}%` } },
+          { description: { [Op.like]: `%${search}%` } },
           { '$Compound.name$': { [Op.like]: `%${search}%` } },
           { '$Compound.location$': { [Op.like]: `%${search}%` } }
         ]
@@ -56,13 +70,43 @@ router.get("/", async (req, res) => {
       whereClause.approved = true;
     }
 
-    const properties = await Property.findAll({
+    // Price range filter
+    if (price_min || price_max) {
+      whereClause.price = {};
+      if (price_min) whereClause.price[Op.gte] = Number(price_min);
+      if (price_max) whereClause.price[Op.lte] = Number(price_max);
+    }
+
+    // Room type filter
+    if (room_type) {
+      const roomTypes = room_type.split(',').map(r => r.trim());
+      whereClause.room_type = { [Op.in]: roomTypes };
+    }
+
+    // Availability filter
+    if (available_only === 'true') {
+      whereClause[Op.and] = [
+        literal('`properties`.`total_beds` - `properties`.`occupied_beds` > 0')
+      ];
+    }
+
+    // Pagination
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit) || 20));
+    const offset = (pageNum - 1) * limitNum;
+
+    // Sorting
+    const validSortFields = ['created_at', 'price', 'name', 'total_beds'];
+    const sortField = validSortFields.includes(sort_by) ? sort_by : 'created_at';
+    const sortDirection = sort_order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+    const { count, rows: properties } = await Property.findAndCountAll({
       where: whereClause,
       include: [
         {
           model: PropertyImage,
           as: 'images',
-          limit: 1 // Only first image for listing view
+          limit: 1
         },
         {
           model: Building,
@@ -75,16 +119,19 @@ router.get("/", async (req, res) => {
         {
           model: User,
           as: 'landlord',
-          attributes: ['name'] // Limited info
+          attributes: ['name']
         }
       ],
-      order: [['created_at', 'DESC']]
+      order: [[sortField, sortDirection]],
+      limit: limitNum,
+      offset: offset,
+      distinct: true
     });
 
-    // Format response - hide sensitive info for non-authenticated users
+    // Format response
     const formattedProperties = properties.map(property => ({
-      available_beds: property.availableBeds,
-      availability_status: getAvailabilityStatus(property.availableBeds),
+      available_beds: property.total_beds - property.occupied_beds,
+      availability_status: getAvailabilityStatus(property.total_beds - property.occupied_beds),
       id: property.id,
       name: property.name,
       price: property.price,
@@ -94,10 +141,20 @@ router.get("/", async (req, res) => {
       occupied_beds: property.occupied_beds,
       image: property.images && property.images.length > 0 ? property.images[0].image_url : null,
       compound: property.building?.compound?.name,
+      building: property.building?.name,
       landlord_name: property.landlord?.name
     }));
 
-    res.json(formattedProperties);
+    res.json({
+      properties: formattedProperties,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: count,
+        totalPages: Math.ceil(count / limitNum),
+        hasMore: pageNum * limitNum < count
+      }
+    });
   } catch (error) {
     console.error('Error fetching properties:', error);
     res.status(500).json({ message: error.message });
@@ -131,8 +188,8 @@ router.get("/mine", auth, async (req, res) => {
       approved: property.approved,
       total_beds: property.total_beds,
       occupied_beds: property.occupied_beds,
-      available_beds: property.availableBeds,
-      availability_status: getAvailabilityStatus(property.availableBeds),
+      available_beds: property.total_beds - property.occupied_beds,
+      availability_status: getAvailabilityStatus(property.total_beds - property.occupied_beds),
       compound: property.building?.compound?.name || null,
       building: property.building?.name || null
     }));
@@ -168,6 +225,13 @@ router.get("/:id", async (req, res) => {
           model: User,
           as: 'landlord',
           attributes: ['name', 'phone', 'email']
+        },
+        {
+          model: Review,
+          as: 'reviews',
+          limit: 10,
+          order: [['created_at', 'DESC']],
+          include: [{ model: User, as: 'user', attributes: ['name'] }]
         }
       ]
     });
@@ -183,6 +247,11 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ message: "Property not found" });
     }
 
+    // Calculate average rating
+    const totalRating = property.reviews ? property.reviews.reduce((sum, review) => sum + review.rating, 0) : 0;
+    const reviewCount = property.reviews ? property.reviews.length : 0;
+    const averageRating = reviewCount > 0 ? (totalRating / reviewCount).toFixed(1) : 0;
+
     const response = {
       id: property.id,
       name: property.name,
@@ -192,13 +261,15 @@ router.get("/:id", async (req, res) => {
       room_type: property.room_type,
       total_beds: property.total_beds,
       occupied_beds: property.occupied_beds,
-      available_beds: property.availableBeds,
-      availability_status: getAvailabilityStatus(property.availableBeds),
+      available_beds: property.total_beds - property.occupied_beds,
+      availability_status: getAvailabilityStatus(property.total_beds - property.occupied_beds),
       approved: property.approved,
       images: property.images.map(img => img.image_url),
       features: property.features.map(feat => feat.feature),
       building: property.building?.name,
       compound: property.building?.compound?.name,
+      average_rating: parseFloat(averageRating),
+      review_count: reviewCount,
       landlord: isAuthenticated ? {
         name: property.landlord?.name,
         phone: property.phone || property.landlord?.phone,
@@ -469,7 +540,11 @@ router.delete("/:id", auth, async (req, res) => {
       return res.status(403).json({ message: "Not authorized to delete this property" });
     }
 
+    // Delete related records
+    await PropertyFeature.destroy({ where: { property_id: property.id } });
+    await PropertyImage.destroy({ where: { property_id: property.id } });
     await property.destroy();
+
     res.json({ message: "Property deleted successfully" });
   } catch (error) {
     console.error('Error deleting property:', error);

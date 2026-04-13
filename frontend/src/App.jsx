@@ -1,13 +1,15 @@
 import { Suspense, lazy, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
-import Navbar from "./components/Navbar";
-import MobileLayout from "./components/MobileLayout";
+import Navbar from "./components/navbar/Navbar";
+import Footer from "./components/footer/Footer";
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 import { NotificationContainer } from "./components/NotificationContainer.tsx";
 import { useAuthStore } from "./stores/authStore.ts";
 
+// Pages
 const Home = lazy(() => import("./pages/Home"));
+const About = lazy(() => import("./pages/About"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const CreateProperty = lazy(() => import("./pages/CreateProperty"));
@@ -26,43 +28,69 @@ function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
-        <NotificationContainer />
-        <MobileLayout>
+        <div className="d-flex flex-column min-vh-100">
+          {/* GLOBAL NOTIFICATIONS */}
+          <NotificationContainer />
+
+          {/* NAVBAR */}
           <Navbar />
 
-          <Suspense fallback={<div className="text-center py-16 text-gray-600">Loading page...</div>}>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route
-                path="/create-listing"
-                element={
-                  user && (user.role === "landlord" || user.role === "admin") ? (
-                    <CreateProperty />
-                  ) : (
-                    <Navigate to="/login" replace />
-                  )
-                }
-              />
-              <Route path="/property/:id" element={<PropertyDetail />} />
-              <Route
-                path="/landlord"
-                element={
-                  user && (user.role === "landlord" || user.role === "admin") ? (
-                    <LandlordDashboard />
-                  ) : (
-                    <Navigate to="/login" replace />
-                  )
-                }
-              />
-              <Route
-                path="/admin"
-                element={user?.role === "admin" ? <AdminDashboard /> : <Navigate to="/" replace />}
-              />
-            </Routes>
-          </Suspense>
-        </MobileLayout>
+          {/* MAIN APP AREA */}
+          <main className="flex-grow-1">
+            <Suspense fallback={
+              <div className="text-center py-5 mt-5">
+                <div className="spinner-border text-primary" role="status"></div>
+                <div className="mt-2 text-muted">Loading page...</div>
+              </div>
+            }>
+              <Routes>
+                {/* PUBLIC ROUTES */}
+                <Route path="/" element={<Home />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/help" element={<About />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/property/:id" element={<PropertyDetail />} />
+                <Route path="/properties" element={<Home />} />
+
+                {/* PROTECTED LANDLORD ROUTES */}
+                <Route
+                  path="/create-listing"
+                  element={
+                    user && (user.role === "landlord" || user.role === "admin")
+                      ? <CreateProperty />
+                      : <Navigate to="/login" replace />
+                  }
+                />
+
+                <Route
+                  path="/landlord"
+                  element={
+                    user && (user.role === "landlord" || user.role === "admin")
+                      ? <LandlordDashboard />
+                      : <Navigate to="/login" replace />
+                  }
+                />
+
+                {/* ADMIN ROUTE */}
+                <Route
+                  path="/admin"
+                  element={
+                    user?.role === "admin"
+                      ? <AdminDashboard />
+                      : <Navigate to="/" replace />
+                  }
+                />
+
+                {/* DEFAULT REDIRECT */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+          </main>
+
+          {/* FOOTER */}
+          <Footer />
+        </div>
       </BrowserRouter>
     </ErrorBoundary>
   );

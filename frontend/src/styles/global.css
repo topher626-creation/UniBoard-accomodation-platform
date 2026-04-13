@@ -1,0 +1,273 @@
+/* UniBoard Global Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Light Mode Colors */
+  --uniboard-primary: #2563eb;
+  --uniboard-secondary: #64748b;
+  --uniboard-success: #10b981;
+  --uniboard-warning: #f59e0b;
+  --uniboard-danger: #ef4444;
+  --uniboard-info: #06b6d4;
+  --uniboard-light: #f8fafc;
+  --uniboard-dark: #1e293b;
+  --uniboard-background: #f1f5f9;
+  --uniboard-card-bg: #ffffff;
+  --uniboard-text: #1e293b;
+  --uniboard-text-muted: #64748b;
+  --uniboard-border: #e2e8f0;
+}
+
+[data-theme="dark"] {
+  --uniboard-primary: #3b82f6;
+  --uniboard-secondary: #94a3b8;
+  --uniboard-background: #0f172a;
+  --uniboard-card-bg: #1e293b;
+  --uniboard-text: #f8fafc;
+  --uniboard-text-muted: #94a3b8;
+  --uniboard-border: #334155;
+}
+
+* {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+  background-color: var(--uniboard-background);
+  color: var(--uniboard-text);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Card Hover Effects */
+.card {
+  background-color: var(--uniboard-card-bg);
+  border: 1px solid var(--uniboard-border);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .card:hover {
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Button Styles */
+.btn-uniboard {
+  background-color: var(--uniboard-primary);
+  color: white;
+  border: none;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-uniboard:hover {
+  background-color: #1d4ed8;
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* Form Styles */
+.form-control, .form-select {
+  border-radius: 0.5rem;
+  padding: 0.625rem 1rem;
+  border: 1px solid var(--uniboard-border);
+  background-color: var(--uniboard-card-bg);
+  color: var(--uniboard-text);
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--uniboard-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Badge Styles */
+.badge-availability {
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-available {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.badge-low {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.badge-full {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+[data-theme="dark"] .badge-available {
+  background-color: #166534;
+  color: #dcfce7;
+}
+
+[data-theme="dark"] .badge-low {
+  background-color: #92400e;
+  color: #fef3c7;
+}
+
+[data-theme="dark"] .badge-full {
+  background-color: #991b1b;
+  color: #fee2e2;
+}
+
+/* Navbar Styles */
+.navbar {
+  background-color: var(--uniboard-card-bg) !important;
+  border-bottom: 1px solid var(--uniboard-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-brand {
+  font-weight: 700;
+  color: var(--uniboard-primary) !important;
+}
+
+/* Offcanvas Styles */
+.offcanvas {
+  background-color: var(--uniboard-card-bg);
+}
+
+.offcanvas-header {
+  border-bottom: 1px solid var(--uniboard-border);
+}
+
+/* Property Card */
+.property-card {
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.property-card img {
+  height: 200px;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.property-card:hover img {
+  transform: scale(1.05);
+}
+
+/* Auth Modal Styles */
+.auth-modal .modal-content {
+  border: none;
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.auth-modal .modal-body {
+  padding: 0;
+}
+
+/* Role Selection Cards */
+.role-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid var(--uniboard-border);
+  border-radius: 1rem;
+}
+
+.role-card:hover {
+  border-color: var(--uniboard-primary);
+  transform: translateY(-4px);
+}
+
+.role-card.selected {
+  border-color: var(--uniboard-primary);
+  background-color: rgba(37, 99, 235, 0.05);
+}
+
+/* Dashboard Styles */
+.dashboard-card {
+  border-radius: 1rem;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Footer Styles */
+.footer {
+  background-color: var(--uniboard-card-bg);
+  border-top: 1px solid var(--uniboard-border);
+}
+
+/* Loading Spinner */
+.spinner-primary {
+  color: var(--uniboard-primary);
+}
+
+/* Utilities */
+.text-uniboard {
+  color: var(--uniboard-primary);
+}
+
+.bg-uniboard {
+  background-color: var(--uniboard-primary);
+}
+
+/* Accordion Custom Styles */
+.accordion-button {
+  background-color: var(--uniboard-card-bg);
+  color: var(--uniboard-text);
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: rgba(37, 99, 235, 0.05);
+  color: var(--uniboard-primary);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--uniboard-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--uniboard-secondary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--uniboard-primary);
+}
+
+/* Animation Classes */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Lock Screen */
+.lock-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+}

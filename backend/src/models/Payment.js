@@ -1,53 +1,84 @@
-const mongoose = require("mongoose");
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/db');
 
-const paymentSchema = new mongoose.Schema({
-  booking: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Booking",
-    required: true
+const Payment = sequelize.define('Payment', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
   },
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true
+  booking_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'bookings',
+      key: 'id'
+    }
   },
-  listing: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Listing",
-    required: true
+  user_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
+  },
+  listing_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'listings',
+      key: 'id'
+    }
   },
   amount: {
-    type: Number,
-    required: true,
-    min: 0
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    validate: {
+      min: 0
+    }
   },
   currency: {
-    type: String,
-    default: "USD"
+    type: DataTypes.STRING(3),
+    defaultValue: 'USD'
   },
-  paymentMethod: {
-    type: String,
-    enum: ["stripe", "mobile_money", "bank_transfer"],
-    default: "stripe"
+  payment_method: {
+    type: DataTypes.ENUM('stripe', 'mobile_money', 'bank_transfer'),
+    defaultValue: 'stripe'
   },
-  stripePaymentIntentId: String,
-  mobileMoneyProvider: {
-    type: String,
-    enum: ["mtn", "airtel", "zamtel"]
+  stripe_payment_intent_id: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
+  mobile_money_provider: {
+    type: DataTypes.ENUM('mtn', 'airtel', 'zamtel'),
+    allowNull: true
   },
   status: {
-    type: String,
-    enum: ["pending", "processing", "completed", "failed", "refunded"],
-    default: "pending"
+    type: DataTypes.ENUM('pending', 'processing', 'completed', 'failed', 'refunded'),
+    defaultValue: 'pending'
   },
-  transactionId: String,
-  receiptUrl: String,
-  errorMessage: String,
+  transaction_id: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
+  receipt_url: {
+    type: DataTypes.STRING(500),
+    allowNull: true
+  },
+  error_message: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
   metadata: {
-    type: Object
+    type: DataTypes.JSON,
+    defaultValue: {}
   }
 }, {
-  timestamps: true
+  tableName: 'payments',
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at'
 });
 
-module.exports = mongoose.model("Payment", paymentSchema);
+module.exports = Payment;

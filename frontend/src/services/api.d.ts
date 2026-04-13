@@ -1,0 +1,41 @@
+declare module "../services/api" {
+  const api: {
+    login: (email: string, password: string) => Promise<any>;
+    register: (userData: any) => Promise<any>;
+    getCurrentUser: () => Promise<any>;
+    getProperties: (params?: any) => Promise<any>;
+    getProperty: (id: string | number) => Promise<any>;
+    createProperty: (data: any) => Promise<any>;
+    updateProperty: (id: string | number, data: any) => Promise<any>;
+    deleteProperty: (id: string | number) => Promise<any>;
+    getMyProperties: () => Promise<any>;
+    getMyBookings: (status?: string) => Promise<any>;
+    createBooking: (data: any) => Promise<any>;
+    cancelBooking: (id: string | number) => Promise<any>;
+    getLandlordBookings: (status?: string) => Promise<any>;
+    confirmBooking: (id: string | number) => Promise<any>;
+    rejectBooking: (id: string | number, reason: string) => Promise<any>;
+    getFavorites: () => Promise<any>;
+    addFavorite: (propertyId: string | number) => Promise<any>;
+    removeFavorite: (propertyId: string | number) => Promise<any>;
+    checkFavorite: (propertyId: string | number) => Promise<any>;
+    getProfile: () => Promise<any>;
+    updateProfile: (data: any) => Promise<any>;
+    changePassword: (currentPassword: string, newPassword: string) => Promise<any>;
+    getAdminStats: () => Promise<any>;
+    getAdminUsers: () => Promise<any>;
+    updateUserRole: (id: string | number, role: string) => Promise<any>;
+    banUser: (id: string | number, banned: boolean) => Promise<any>;
+    deleteUser: (id: string | number) => Promise<any>;
+    getAdminProperties: () => Promise<any>;
+    approveProperty: (id: string | number, approved: boolean) => Promise<any>;
+    deletePropertyAdmin: (id: string | number) => Promise<any>;
+    getPropertyReviews: (propertyId: string | number) => Promise<any>;
+    createReview: (data: any) => Promise<any>;
+    getCompounds: () => Promise<any>;
+    createCompound: (data: any) => Promise<any>;
+    getBuildings: (compoundId?: string | number) => Promise<any>;
+    createBuilding: (data: any) => Promise<any>;
+  };
+  export { api };
+}

@@ -1,7 +1,7 @@
-const { DataTypes } = require("sequelize");
-const { sequelize } = require("../config/db");
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/db');
 
-const Booking = sequelize.define("Booking", {
+const Booking = sequelize.define('Booking', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
@@ -11,47 +11,70 @@ const Booking = sequelize.define("Booking", {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: "users",
-      key: "id"
+      model: 'users',
+      key: 'id'
     }
   },
   property_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: "properties",
-      key: "id"
+      model: 'properties',
+      key: 'id'
     }
   },
   status: {
-    type: DataTypes.ENUM("PENDING", "CONFIRMED", "REJECTED", "CANCELLED"),
-    defaultValue: "PENDING"
+    type: DataTypes.ENUM('pending', 'confirmed', 'rejected', 'cancelled', 'completed'),
+    defaultValue: 'pending'
+  },
+  move_in_date: {
+    type: DataTypes.DATEONLY,
+    allowNull: true
+  },
+  duration_months: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    validate: {
+      min: 1,
+      max: 12
+    }
+  },
+  total_amount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true
   },
   payment_proof_url: {
     type: DataTypes.STRING(500),
     allowNull: true
   },
-  payment_notes: {
+  payment_proof_type: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    defaultValue: 'image'
+  },
+  rejection_reason: {
     type: DataTypes.TEXT,
     allowNull: true
   },
-  rejection_reason: {
-    type: DataTypes.STRING(255),
-    allowNull: true
-  },
-  confirmed_at: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  rejected_at: {
-    type: DataTypes.DATE,
+  notes: {
+    type: DataTypes.TEXT,
     allowNull: true
   }
 }, {
-  tableName: "bookings",
+  tableName: 'bookings',
   timestamps: true,
-  createdAt: "created_at",
-  updatedAt: "updated_at"
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
+  indexes: [
+    {
+      unique: false,
+      fields: ['user_id', 'property_id']
+    },
+    {
+      unique: false,
+      fields: ['status']
+    }
+  ]
 });
 
 module.exports = Booking;

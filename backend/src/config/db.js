@@ -1,40 +1,53 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
-const sequelize = new Sequelize(
-  process.env.DB_NAME || 'uniboard_db',
-  process.env.DB_USER || 'root',
-  process.env.DB_PASSWORD || '',
-  {
-    host: process.env.DB_HOST || 'localhost',
-    port: Number(process.env.DB_PORT || 3306),
-    dialect: 'mysql',
-    logging: false,
-    dialectOptions: {
-      charset: 'utf8mb4'
-    },
-    define: {
-      charset: 'utf8mb4'
+// Check if we should use SQLite (for easier development without XAMPP)
+const useSQLite = process.env.DB_TYPE === 'sqlite' || !process.env.DB_HOST;
+
+let sequelize;
+
+if (useSQLite) {
+  // SQLite configuration - no XAMPP needed!
+  sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: './database/uniboard_dev.sqlite',
+    logging: false
+  });
+  console.log('Using SQLite database (no XAMPP needed)');
+} else {
+  // MySQL/MariaDB configuration for production
+  sequelize = new Sequelize(
+    process.env.DB_NAME || 'uniboard_db',
+    process.env.DB_USER || 'root',
+    process.env.DB_PASSWORD || '',
+    {
+      host: process.env.DB_HOST || 'localhost',
+      port: Number(process.env.DB_PORT || 3306),
+      dialect: 'mysql',
+      logging: false,
+      dialectOptions: {
+        charset: 'utf8mb4'
+      },
+      define: {
+        charset: 'utf8mb4'
+      },
+      pool: {
+        max: 5,
+        min: 0,
+        acquire: 30000,
+        idle: 10000
+      }
     }
-  }
-);
+  );
+  console.log('Using MySQL database');
+}
 
 const connectDB = async () => {
   try {
     await sequelize.authenticate();
-
-    const queryInterface = sequelize.getQueryInterface();
-    const usersTable = await queryInterface.describeTable('users');
-    if (!usersTable.is_banned) {
-      await queryInterface.addColumn('users', 'is_banned', {
-        type: Sequelize.BOOLEAN,
-        defaultValue: false
-      });
-    }
-
-    console.log('MySQL connected (XAMPP) ✅');
+    console.log('Database connected ✅');
   } catch (error) {
-    console.error('MySQL connection failed ❌:', error.message);
+    console.error('Database connection failed ❌:', error.message);
   }
 };
 
