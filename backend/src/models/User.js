@@ -47,6 +47,10 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING(500),
     allowNull: true
   },
+  nrc_url: {
+    type: DataTypes.STRING(500),
+    allowNull: true
+  },
   role: {
     type: DataTypes.ENUM('student', 'landlord', 'admin'),
     defaultValue: 'student'

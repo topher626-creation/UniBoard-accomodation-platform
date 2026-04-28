@@ -14,6 +14,8 @@ import {
   LogOut,
   LogIn,
   UserPlus,
+  Heart,
+  Download,
 } from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";
 import { AuthModal } from "../auth/AuthModal";
@@ -61,64 +63,82 @@ function Navbar() {
   return (
     <>
       <nav className="navbar navbar-expand-lg sticky-top ub-navbar">
-        <div className="container">
+        <div className="container-fluid">
           {/* Logo */}
-          <BrandLogo height={44} className="navbar-brand py-1" />
+          <Link className="navbar-brand py-1" to="/">
+<BrandLogo height={52} />
+          </Link>
 
-          {/* Desktop Navigation */}
-          <div className="d-none d-lg-flex align-items-center gap-4">
-            <Link to="/" className="nav-link text-dark">
-              Home
-            </Link>
-            <Link to="/about" className="nav-link text-dark">
-              About Us
-            </Link>
-            {(user?.role === "landlord" || user?.role === "admin") && (
-              <Link to="/create-listing" className="nav-link text-dark">
-                List Property
+          {/* Desktop Navigation - Always visible */}
+          <ul className="navbar-nav mx-auto mb-2 mb-lg-0">
+            <li className="nav-item">
+              <Link className="nav-link" to="/">
+                Home
               </Link>
+            </li>
+            <li className="nav-item">
+              <Link className="nav-link" to="/about">
+                About Us
+              </Link>
+            </li>
+            <li className="nav-item">
+              <Link className="nav-link" to="/help">
+                Help
+              </Link>
+            </li>
+            <li className="nav-item">
+              <Link className="nav-link" to="/properties">
+                Browse bedspaces
+              </Link>
+            </li>
+            {(user?.role === "landlord" || user?.role === "admin") && (
+              <li className="nav-item">
+                <Link className="nav-link" to="/create-listing">
+                  List Property
+                </Link>
+              </li>
             )}
-          </div>
+          </ul>
 
-          {/* Right Side - Desktop */}
-          <div className="d-none d-lg-flex align-items-center gap-3">
+          {/* Right Side */}
+          <div className="d-flex align-items-center gap-3">
             {/* Theme Toggle */}
             <button
               type="button"
-              className="btn btn-link text-dark p-2"
+              className="btn btn-sm btn-outline-secondary"
               onClick={toggleTheme}
-              title={themeDark ? "Switch to light mode" : "Switch to dark mode"}
-              aria-label={themeDark ? "Switch to light mode" : "Switch to dark mode"}
+              title={themeDark ? "Light Mode" : "Dark Mode"}
             >
-              {themeDark ? <Sun size={22} /> : <Moon size={22} />}
+              {themeDark ? <Sun size={20} /> : <Moon size={20} />}
             </button>
 
             {user ? (
               <div className="dropdown">
                 <button
-                  className="btn btn-outline-primary dropdown-toggle"
+                  className="btn btn-primary dropdown-toggle btn-sm"
                   type="button"
                   data-bs-toggle="dropdown"
+                  aria-expanded="false"
                 >
-                  {user.name || user.email}
+                  Hi, {user.name}
                 </button>
                 <ul className="dropdown-menu dropdown-menu-end">
                   <li>
-                    <Link to="/profile" className="dropdown-item">
+                    <Link className="dropdown-item" to="/profile">
                       Profile
                     </Link>
                   </li>
-                  {user.role === "landlord" && (
+                  {(user.role === "landlord" || user.role === "admin") && (
                     <li>
-                      <Link to="/landlord" className="dropdown-item">
-                        Landlord Dashboard
+                      <Link className="dropdown-item" to="/landlord">
+                        Dashboard
                       </Link>
                     </li>
                   )}
                   {user.role === "admin" && (
                     <li>
-                      <Link to="/admin" className="dropdown-item">
-                        Admin Dashboard
+                      <Link className="dropdown-item" to="/admin">
+                        Admin
                       </Link>
                     </li>
                   )}
@@ -126,7 +146,7 @@ function Navbar() {
                     <hr className="dropdown-divider" />
                   </li>
                   <li>
-                    <button className="dropdown-item" onClick={handleLogout}>
+                    <button className="dropdown-item text-danger" onClick={handleLogout}>
                       Logout
                     </button>
                   </li>
@@ -134,179 +154,127 @@ function Navbar() {
               </div>
             ) : (
               <>
-                <button className="btn btn-outline-primary" onClick={openLogin}>
+                <button
+                  type="button"
+                  className="btn btn-outline-primary btn-sm me-2"
+                  onClick={openLogin}
+                >
                   Login
                 </button>
-                <button className="btn btn-primary" onClick={openRegister}>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={openRegister}
+                >
                   Register
                 </button>
               </>
             )}
           </div>
 
-          {/* Hamburger Menu - Mobile */}
+          {/* Hamburger Menu - Always Visible */}
           <button
-            className="btn d-lg-none"
+            className="navbar-toggler"
             type="button"
-            onClick={() => setShowOffcanvas(true)}
+            data-bs-toggle="offcanvas"
+            data-bs-target="#offcanvasNavbar"
+            aria-controls="offcanvasNavbar"
+            aria-label="Toggle navigation"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              fill="currentColor"
-              viewBox="0 0 16 16"
-            >
-              <path
-                fillRule="evenodd"
-                d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"
-              />
-            </svg>
+            <span className="navbar-toggler-icon"></span>
           </button>
         </div>
       </nav>
 
-      {/* Mobile Offcanvas Backdrop */}
-      {showOffcanvas && (
-        <div
-          className="ub-offcanvas-backdrop"
-          onClick={() => setShowOffcanvas(false)}
-        />
-      )}
-
-      {/* Mobile Offcanvas Menu */}
+      {/* Offcanvas */}
       <div
-        className={`offcanvas offcanvas-end ${showOffcanvas ? "show" : ""}`}
+        className="offcanvas offcanvas-end"
         tabIndex="-1"
-        style={{ visibility: showOffcanvas ? "visible" : "hidden", zIndex: 1040 }}
+        id="offcanvasNavbar"
+        aria-labelledby="offcanvasNavbarLabel"
       >
         <div className="offcanvas-header">
-          <h5 className="offcanvas-title mb-0">
+          <h5 className="offcanvas-title" id="offcanvasNavbarLabel">
             <BrandLogo height={36} />
           </h5>
           <button
             type="button"
             className="btn-close"
-            onClick={() => setShowOffcanvas(false)}
-          />
+            data-bs-dismiss="offcanvas"
+            aria-label="Close"
+          ></button>
         </div>
         <div className="offcanvas-body">
-          <ul className="nav flex-column gap-2">
+          <ul className="navbar-nav flex-grow-1 menu-items">
             <li className="nav-item">
-              <Link
-                to="/"
-                className="nav-link text-dark py-2 d-flex align-items-center gap-2"
-                onClick={() => setShowOffcanvas(false)}
-              >
-                <Home size={18} aria-hidden /> Home
+              <Link className="nav-link" to="/" data-bs-dismiss="offcanvas">
+                <Home size={18} className="me-2" /> Home
               </Link>
             </li>
             <li className="nav-item">
-              <Link
-                to="/about"
-                className="nav-link text-dark py-2 d-flex align-items-center gap-2"
-                onClick={() => setShowOffcanvas(false)}
-              >
-                <Info size={18} aria-hidden /> About Us
+              <Link className="nav-link" to="/properties" data-bs-dismiss="offcanvas">
+                <Search size={18} className="me-2" /> Search
               </Link>
             </li>
             <li className="nav-item">
-              <Link
-                to="/help"
-                className="nav-link text-dark py-2 d-flex align-items-center gap-2"
-                onClick={() => setShowOffcanvas(false)}
-              >
-                <HelpCircle size={18} aria-hidden /> Help
+              <Link className="nav-link" to="/saved" data-bs-dismiss="offcanvas">
+                <Heart size={18} className="me-2" /> Saved Properties
               </Link>
             </li>
-
-            {(user?.role === "landlord" || user?.role === "admin") && (
-              <li className="nav-item">
-                <Link
-                  to="/create-listing"
-                  className="nav-link text-dark py-2 d-flex align-items-center gap-2"
-                  onClick={() => setShowOffcanvas(false)}
-                >
-                  <Plus size={18} aria-hidden /> List Property
-                </Link>
-              </li>
-            )}
-
             <li className="nav-item">
-              <Link
-                to="/properties"
-                className="nav-link text-dark py-2 d-flex align-items-center gap-2"
-                onClick={() => setShowOffcanvas(false)}
-              >
-                <Search size={18} aria-hidden /> Browse bedspaces
+              <Link className="nav-link" to="/create-listing" data-bs-dismiss="offcanvas">
+                <Plus size={18} className="me-2" /> List a Property
+              </Link>
+            </li>
+            <li className="nav-item">
+              <Link className="nav-link" to="/download" data-bs-dismiss="offcanvas">
+                <Download size={18} className="me-2" /> Download the App
               </Link>
             </li>
           </ul>
-
           <hr />
-
-          {/* Theme Toggle */}
-          <button
-            type="button"
-            className="btn btn-link text-dark w-100 text-start py-2 d-flex align-items-center gap-2"
-            onClick={toggleTheme}
-          >
-            {themeDark ? <Sun size={18} /> : <Moon size={18} />}
-            {themeDark ? "Light mode" : "Dark mode"}
-          </button>
-
-          <hr />
-
-          {user ? (
-            <div className="d-flex flex-column gap-2">
-              <Link
-                to="/profile"
-                className="btn btn-outline-primary d-flex align-items-center justify-content-center gap-2"
-                onClick={() => setShowOffcanvas(false)}
-              >
-                <User size={18} /> Profile
-              </Link>
-              {(user.role === "landlord" || user.role === "admin") && (
-                <Link
-                  to="/landlord"
-                  className="btn btn-outline-primary d-flex align-items-center justify-content-center gap-2"
-                  onClick={() => setShowOffcanvas(false)}
-                >
-                  <LayoutDashboard size={18} /> Dashboard
-                </Link>
-              )}
-              {user.role === "admin" && (
-                <Link
-                  to="/admin"
-                  className="btn btn-outline-primary d-flex align-items-center justify-content-center gap-2"
-                  onClick={() => setShowOffcanvas(false)}
-                >
-                  <Settings size={18} /> Admin
-                </Link>
-              )}
+          {/* Authentication Buttons */}
+          {!user ? (
+            <div className="d-grid gap-2">
               <button
-                type="button"
-                className="btn btn-outline-danger d-flex align-items-center justify-content-center gap-2"
-                onClick={handleLogout}
+                className="btn btn-outline-primary"
+                onClick={openLogin}
+                data-bs-dismiss="offcanvas"
               >
-                <LogOut size={18} /> Logout
+                <LogIn size={18} className="me-2" /> Log In
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={openRegister}
+                data-bs-dismiss="offcanvas"
+              >
+                <UserPlus size={18} className="me-2" /> Sign Up
               </button>
             </div>
           ) : (
-            <div className="d-flex flex-column gap-2">
-              <button
-                type="button"
-                className="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2"
-                onClick={openLogin}
+            <div className="d-grid gap-2">
+              <Link
+                className="btn btn-outline-primary"
+                to="/profile"
+                data-bs-dismiss="offcanvas"
               >
-                <LogIn size={18} /> Login
-              </button>
+                <User size={18} className="me-2" /> Profile
+              </Link>
+              {(user.role === "landlord" || user.role === "admin") && (
+                <Link
+                  className="btn btn-outline-primary"
+                  to="/landlord"
+                  data-bs-dismiss="offcanvas"
+                >
+                  <LayoutDashboard size={18} className="me-2" /> Dashboard
+                </Link>
+              )}
               <button
-                type="button"
-                className="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2"
-                onClick={openRegister}
+                className="btn btn-danger"
+                onClick={handleLogout}
+                data-bs-dismiss="offcanvas"
               >
-                <UserPlus size={18} /> Register
+                <LogOut size={18} className="me-2" /> Logout
               </button>
             </div>
           )}
@@ -324,3 +292,4 @@ function Navbar() {
 }
 
 export default Navbar;
+

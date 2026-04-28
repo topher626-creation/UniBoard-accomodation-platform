@@ -4,7 +4,7 @@ import { FaInstagram, FaFacebookF, FaTiktok, FaTwitter, FaYoutube } from "react-
 import { BrandLogo } from "../BrandLogo";
 
 function Footer() {
-  const currentYear = new Date().getFullYear();
+  const currentYear = new Date().getFullYear()
 
   return (
     <footer className="ub-footer py-5 mt-auto">
@@ -13,63 +13,29 @@ function Footer() {
           {/* About */}
           <div className="col-lg-4">
             <div className="mb-3">
-              <BrandLogo height={48} />
+              <BrandLogo height={56} />
             </div>
             <p className="text-muted small mb-2" style={{ lineHeight: "1.7" }}>
               Your trusted platform for finding verified student accommodation near campus.
               We connect students with verified landlords and agents.
             </p>
             <p className="text-muted small mb-4" style={{ lineHeight: "1.6", opacity: 0.9 }}>
-              Founded by <strong className="text-body">Siame Christopher</strong> — sole founder.
-              Built independently with input from a small team.{" "}
-              <Link to="/about" className="text-decoration-none ub-footer-link">
-                Read more
-              </Link>
+              Founded by <strong className="text-primary fw-bold">Siame Christopher</strong> – Crafting Zambia's premier student housing platform ✨
             </p>
             <div className="d-flex gap-3 flex-wrap">
-              <a
-                href="https://www.instagram.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted ub-social-link"
-                aria-label="Instagram"
-              >
+              <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" className="text-muted ub-social-link" aria-label="Instagram">
                 <FaInstagram size={18} />
               </a>
-              <a
-                href="https://www.facebook.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted ub-social-link"
-                aria-label="Facebook"
-              >
+              <a href="https://www.facebook.com/" target="_blank" rel="noopener noreferrer" className="text-muted ub-social-link" aria-label="Facebook">
                 <FaFacebookF size={18} />
               </a>
-              <a
-                href="https://www.tiktok.com/@uniboardzambia"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted ub-social-link"
-                aria-label="TikTok"
-              >
+              <a href="https://www.tiktok.com/@uniboardzambia" target="_blank" rel="noopener noreferrer" className="text-muted ub-social-link" aria-label="TikTok">
                 <FaTiktok size={18} />
               </a>
-              <a
-                href="https://twitter.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted ub-social-link"
-                aria-label="X (Twitter)"
-              >
+              <a href="https://twitter.com/" target="_blank" rel="noopener noreferrer" className="text-muted ub-social-link" aria-label="X (Twitter)">
                 <FaTwitter size={18} />
               </a>
-              <a
-                href="https://www.youtube.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted ub-social-link"
-                aria-label="YouTube"
-              >
+              <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" className="text-muted ub-social-link" aria-label="YouTube">
                 <FaYoutube size={18} />
               </a>
             </div>
@@ -135,7 +101,7 @@ function Footer() {
             <ul className="list-unstyled text-muted small">
               <li className="mb-2 d-flex align-items-center gap-2">
                 <MessageCircle size={16} className="flex-shrink-0" aria-hidden />
-                WhatsApp: +260 976 449 402
+                <a href="https://wa.me/+260976449402" target="_blank" rel="noopener noreferrer" className="text-decoration-none">WhatsApp: +260 976 449 402</a>
               </li>
               <li className="mb-2 d-flex align-items-center gap-2">
                 <Phone size={16} className="flex-shrink-0" aria-hidden />

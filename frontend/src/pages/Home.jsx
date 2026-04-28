@@ -68,7 +68,6 @@ function Home() {
   return (
     <div className="fade-in">
       {/* Hero Section */}
-
       <section
         className="ub-hero ub-hero--photo text-white py-5 mb-4 relative overflow-hidden"
         style={{ paddingBottom: "150px" }}
@@ -77,43 +76,62 @@ function Home() {
           <div className="row align-items-center g-4">
             <div className="col-lg-7">
               <span className="badge rounded-pill mb-3" style={{ background: "rgba(255,255,255,0.2)", color: "#fff", fontSize: "0.8rem" }}>
-                Zambia&apos;s trusted student housing platform
+                Zambia's trusted student housing platform
               </span>
               <h1 className="display-4 fw-bold mb-3" style={{ lineHeight: "1.15" }}>
-                Find Your Perfect<br />Student Bedspace
+                Find student accommodation<br />fast & secure
               </h1>
               <p className="lead mb-3" style={{ opacity: "0.85" }}>
                 Discover verified off-campus accommodation near your university.
                 Connect directly with trusted landlords and agents.
               </p>
-              <p className="small mb-4" style={{ opacity: "0.72" }}>
-                Founded by <strong className="text-white">Siame Christopher</strong>
-                <span className="d-none d-sm-inline"> — sole founder; built independently with ideas from a small team</span>
-                <span className="d-sm-none"> — sole founder</span>
-                .{" "}
-                <Link to="/about" className="text-white text-decoration-underline text-decoration-underline-opacity-50">
-                  Our story
-                </Link>
-              </p>
 
-              {/* Search Bar */}
-              <form onSubmit={handleSearch}>
-                <div className="d-flex gap-2 flex-column flex-sm-row">
-                  <input
-                    type="text"
-                    name="search"
-                    className="form-control form-control-lg rounded-pill"
-                    placeholder="Search by name or location..."
-                    value={filters.search}
-                    onChange={handleFilterChange}
-                    style={{ minWidth: 0 }}
-                  />
-                  <button
-                    type="submit"
-                    className="btn btn-light btn-lg px-4 fw-semibold text-primary rounded-pill flex-shrink-0 d-inline-flex align-items-center gap-2"
-                  >
-                    <Search size={20} aria-hidden /> Search
-                  </button>
+              {/* Hero Search */}
+              <form onSubmit={handleSearch} className="w-100">
+                <div className="row g-2 g-lg-3">
+                  <div className="col-12 col-sm-6 col-lg-4">
+                    <input
+                      type="text"
+                      name="search"
+                      className="form-control form-control-lg rounded-pill w-100"
+                      placeholder="Search properties..."
+                      value={filters.search}
+                      onChange={handleFilterChange}
+                    />
+                  </div>
+                  <div className="col-12 col-sm-6 col-lg-3">
+                    <select
+                      name="location"
+                      className="form-select form-select-lg rounded-pill w-100"
+                      value={filters.location}
+                      onChange={handleFilterChange}
+                    >
+                      <option value="">Any university</option>
+                      <option value="Kitwe">Copperbelt University</option>
+                      <option value="Lusaka">University of Zambia</option>
+                      <option value="Ndola">Mulungushi University</option>
+                      <option value="Kitwe">Mukuba University</option>
+                      <option value="near campus">Near Campus</option>
+                    </select>
+                  </div>
+                  <div className="col-12 col-sm-6 col-lg-2">
+                    <input
+                      type="number"
+                      name="price_max"
+                      className="form-control form-control-lg rounded-pill w-100"
+                      placeholder="Max K"
+                      value={filters.price_max}
+                      onChange={handleFilterChange}
+                    />
+                  </div>
+                  <div className="col-12 col-sm-6 col-lg-3 d-flex">
+                    <button
+                      type="submit"
+                      className="btn btn-light btn-lg w-100 fw-semibold text-primary rounded-pill d-inline-flex align-items-center justify-content-center gap-2"
+                    >
+                      <Search size={20} aria-hidden /> Search
+                    </button>
+                  </div>
                 </div>
               </form>
 
@@ -154,14 +172,14 @@ function Home() {
         </div>
       </section>
 
-
-      {/* Quick Filter Buttons */}
+      {/* Quick Filters */}
       <section className="container mb-4">
         <div className="d-flex gap-2 flex-wrap justify-content-center">
           <button
             className="btn btn-outline-primary"
             onClick={() => {
               setFilters((prev) => ({ ...prev, room_type: "single" }));
+              fetchProperties();
             }}
           >
             Single Room
@@ -170,6 +188,7 @@ function Home() {
             className="btn btn-outline-primary"
             onClick={() => {
               setFilters((prev) => ({ ...prev, room_type: "bedsitter" }));
+              fetchProperties();
             }}
           >
             Bedsitter
@@ -178,6 +197,7 @@ function Home() {
             className="btn btn-outline-primary"
             onClick={() => {
               setFilters((prev) => ({ ...prev, room_type: "self-contained" }));
+              fetchProperties();
             }}
           >
             Self-contained
@@ -186,106 +206,15 @@ function Home() {
             className="btn btn-outline-primary"
             onClick={() => {
               setFilters((prev) => ({ ...prev, available_only: true }));
+              fetchProperties();
             }}
           >
             Available Now
           </button>
-          <button
-            className="btn btn-link"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            {showFilters ? "Hide Filters" : "More Filters"} →
-          </button>
         </div>
-
-        {/* Advanced Filters */}
-        {showFilters && (
-          <div className="card mt-3 p-3">
-            <div className="row g-3">
-              <div className="col-md-3">
-                <label className="form-label">Location</label>
-                <input
-                  type="text"
-                  name="location"
-                  className="form-control"
-                  placeholder="e.g., Kitwe"
-                  value={filters.location}
-                  onChange={handleFilterChange}
-                />
-              </div>
-              <div className="col-md-3">
-                <label className="form-label">Room Type</label>
-                <select
-                  name="room_type"
-                  className="form-select"
-                  value={filters.room_type}
-                  onChange={handleFilterChange}
-                >
-                  <option value="">All Types</option>
-                  <option value="single">Single</option>
-                  <option value="bedsitter">Bedsitter</option>
-                  <option value="self-contained">Self-contained</option>
-                </select>
-              </div>
-              <div className="col-md-2">
-                <label className="form-label">Min Price (K)</label>
-                <input
-                  type="number"
-                  name="price_min"
-                  className="form-control"
-                  placeholder="0"
-                  value={filters.price_min}
-                  onChange={handleFilterChange}
-                />
-              </div>
-              <div className="col-md-2">
-                <label className="form-label">Max Price (K)</label>
-                <input
-                  type="number"
-                  name="price_max"
-                  className="form-control"
-                  placeholder="Any"
-                  value={filters.price_max}
-                  onChange={handleFilterChange}
-                />
-              </div>
-              <div className="col-md-2 d-flex align-items-end">
-                <div className="form-check">
-                  <input
-                    type="checkbox"
-                    name="available_only"
-                    className="form-check-input"
-                    id="available_only"
-                    checked={filters.available_only}
-                    onChange={handleFilterChange}
-                  />
-                  <label className="form-check-label" htmlFor="available_only">
-                    Available only
-                  </label>
-                </div>
-              </div>
-              <div className="col-12 d-flex gap-2 justify-content-end">
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary"
-                  onClick={clearFilters}
-                >
-                  Clear
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={fetchProperties}
-                >
-                  Apply Filters
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </section>
 
-      {/* Listings Section */}
+      {/* Properties */}
       <section className="container">
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h2 className="fw-bold mb-0">Available Bedspaces</h2>
@@ -305,10 +234,10 @@ function Home() {
             </div>
             <h4 className="mt-3">No properties found</h4>
             <p className="text-muted">
-              Try adjusting your filters or check back later.
+              Try adjusting your search or check back later.
             </p>
             <button className="btn btn-primary" onClick={clearFilters}>
-              Clear Filters
+              Clear All
             </button>
           </div>
         ) : (
@@ -322,16 +251,15 @@ function Home() {
         )}
       </section>
 
-      {/* CTA Section */}
+      {/* CTA */}
       <section className="bg-light py-5 mt-5">
         <div className="container text-center">
-          <h2 className="fw-bold mb-3">List Your Property on UniBoard</h2>
+          <h2 className="fw-bold mb-3">List Your Property</h2>
           <p className="text-muted mb-4">
-            Reach students actively searching for accommodation near campus.
-            Simple listing process, powerful management tools.
+            Reach students searching for accom near campus.
           </p>
           <Link to="/register" className="btn btn-primary btn-lg">
-            Get Started as Provider
+            Get Started as Landlord
           </Link>
         </div>
       </section>
@@ -340,3 +268,4 @@ function Home() {
 }
 
 export default Home;
+

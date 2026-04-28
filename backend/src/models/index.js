@@ -53,7 +53,7 @@ Favorite.belongsTo(Property, { foreignKey: 'property_id', as: 'property' });
 
 // Sync database (only in development)
 if (process.env.NODE_ENV !== 'production') {
-  sequelize.sync({ alter: false }).then(() => {
+sequelize.sync({ alter: false }).then(() => {
     console.log('Database synced successfully');
   }).catch(err => {
     console.error('Error syncing database:', err);

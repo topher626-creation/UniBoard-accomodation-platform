@@ -50,4 +50,31 @@ router.post("/", (req, res, next) => {
   }
 });
 
+
+router.post("/upload-nrc", upload.single("nrc"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: "No file uploaded" });
+    }
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: "uniboard/nrc" },
+        (error, result) => {
+          if (error) reject(error);
+          resolve(result);
+        }
+      );
+      stream.end(req.file.buffer);
+    });
+    res.json({
+      success: true,
+      url: result.secure_url
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: "Upload failed" });
+  }
+});
+
 module.exports = router;
+

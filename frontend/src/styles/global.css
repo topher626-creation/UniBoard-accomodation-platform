@@ -390,6 +390,7 @@ h6 {
 
 /* ===== RESPONSIVE HELPERS ===== */
 @media (max-width: 767.98px) {
+  /* Auth Page */
   .ub-auth-page {
     padding: 1.5rem 1rem;
     align-items: flex-start;
@@ -398,5 +399,100 @@ h6 {
 
   .ub-auth-container {
     max-width: 100%;
+  }
+
+  /* Navbar Mobile Adjustments */
+  .navbar-brand {
+    font-size: 1.25rem;
+  }
+
+  /* Form Controls - Better Mobile Accessibility */
+  .form-control,
+  .form-select,
+  .btn {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  /* Hero Section - Mobile Responsive */
+  .ub-hero {
+    padding-bottom: 100px !important;
+  }
+
+  .ub-hero h1 {
+    font-size: 1.75rem;
+    line-height: 1.2;
+  }
+
+  .ub-hero .lead {
+    font-size: 1rem;
+  }
+
+  .ub-hero .btn {
+    width: 100%;
+  }
+
+  /* Search Form - Full Width on Mobile */
+  .ub-hero form .row {
+    width: 100%;
+  }
+
+  .ub-hero form .col-12 {
+    margin-bottom: 0.5rem;
+  }
+
+  /* Property Grid - Stack on Mobile */
+  .properties-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Ensure Elements Are Clickable */
+  a,
+  button {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Dropdown Menu - Better Mobile Handling */
+  .dropdown-menu {
+    min-width: calc(100vw - 2rem);
+    max-width: 320px;
+  }
+
+  /* Fix Offcanvas */
+  .offcanvas {
+    --bs-offcanvas-width: 280px;
+  }
+
+  /* Container Padding - Mobile Safe */
+  .container,
+  .container-fluid {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  /* Extra Small Screens */
+  .ub-hero h1 {
+    font-size: 1.5rem;
+  }
+
+  .display-4 {
+    font-size: 2rem !important;
+  }
+
+  /* Badge/Stats Spacing */
+  .d-flex.gap-4 {
+    gap: 1rem !important;
+  }
+
+  /* Ensure Minimum Touch Target Size (44x44px) */
+  button,
+  [role="button"],
+  a {
+    min-height: 44px;
+    padding: 10px 12px !important;
   }
 }

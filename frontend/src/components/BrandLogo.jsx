@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 /**
  * Official UniBoard wordmark (full horizontal logo). Served from /public/uniboard-logo.png.
  */
-export function BrandLogo({ to = "/", height = 40, className = "", imgClassName = "" }) {
+export function BrandLogo({ to = "/", height = 50, className = "", imgClassName = "" }) {
   return (
     <Link
       to={to}

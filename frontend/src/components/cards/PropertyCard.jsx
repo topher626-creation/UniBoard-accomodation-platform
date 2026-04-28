@@ -8,11 +8,11 @@ export function PropertyCard({ property, showLandlord = false }) {
   const getAvailabilityBadge = () => {
     const status = property.availability_status;
     if (status === "AVAILABLE") {
-      return <span className="badge badge-availability badge-available">Available</span>;
+      return <span className="badge badge-availability badge-available fw-semibold">✅ Available</span>;
     } else if (status === "LOW") {
-      return <span className="badge badge-availability badge-low">Limited</span>;
+      return <span className="badge badge-availability badge-low fw-semibold">⚡ Limited</span>;
     } else {
-      return <span className="badge badge-availability badge-full">Full</span>;
+      return <span className="badge badge-availability badge-full fw-semibold">❌ Full</span>;
     }
   };
 
@@ -49,6 +49,17 @@ export function PropertyCard({ property, showLandlord = false }) {
           {/* Badges */}
           <div className="position-absolute top-0 end-0 p-2 d-flex gap-1">
             {getRoomTypeBadge()}
+            {property.whatsapp && (
+              <a 
+                href={`https://wa.me/${property.whatsapp.replace(/\\D/g, '')}?text=Hi%2C%20I%27m%20interested%20in%20your%20property%20on%20UniBoard%20${encodeURIComponent(property.name || '')}%20-%20K${property.price || 0}%2Fmonth%20near%20${encodeURIComponent((property.location || property.compound || 'campus'))}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="btn btn-sm btn-success d-flex align-items-center gap-1 px-2 py-1 text-white text-decoration-none"
+                title="Chat on WhatsApp"
+              >
+                💬 WA
+              </a>
+            )}
           </div>
           
           {/* Availability Badge */}
@@ -65,8 +76,18 @@ export function PropertyCard({ property, showLandlord = false }) {
           
           <p className="card-text text-muted small mb-2 d-flex align-items-start gap-1">
             <MapPin size={14} className="flex-shrink-0 mt-1" aria-hidden />
-            <span>{property.location || property.compound || "Location not specified"}</span>
+            <span>{property.location || property.compound || "Near campus"}</span>
           </p>
+
+          {/* Short Description */}
+          {property.description && (
+            <p className="card-text lh-sm mb-2 text-muted small" style={{fontSize: '0.875rem'}}>
+              {property.description.length > 100 
+                ? property.description.substring(0, 100) + '...' 
+                : property.description
+              }
+            </p>
+          )}
 
           {property.compound && (
             <p className="card-text text-muted small mb-2 d-flex align-items-start gap-1">

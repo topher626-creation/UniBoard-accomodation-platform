@@ -18,13 +18,14 @@ const signAuthToken = (userId) =>
 // Register
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, phone, role, business_name, verification_document_url } = req.body;
+const { name, email, password, phone, role, business_name, verification_document_url, nrc } = req.body;
     const normalizedName = (name || "").trim();
     const normalizedEmail = (email || "").trim().toLowerCase();
     const normalizedRole = role || "student";
     const normalizedBusinessName = (business_name || "").trim();
     const normalizedPhone = (phone || "").trim();
-    const normalizedVerificationDocUrl = (verification_document_url || "").trim();
+const normalizedVerificationDocUrl = (verification_document_url || "").trim();
+  const normalizedNrcUrl = (nrc || "").trim();
 
     if (!normalizedName || !normalizedEmail || !password) {
       return res.status(400).json({ message: "Name, email and password are required" });
@@ -71,6 +72,7 @@ router.post("/register", async (req, res) => {
       business_name: normalizedRole === "landlord" ? normalizedBusinessName : null,
       verification_document_url: normalizedVerificationDocUrl || null,
       verification_url: verificationUrl,
+      nrc_url: normalizedNrcUrl || null,
       status: normalizedRole === "landlord" ? "pending" : "active",
       isVerified: normalizedRole === "student"
     });

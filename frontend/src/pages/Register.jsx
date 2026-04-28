@@ -30,6 +30,7 @@ export default function Register() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+const [uploading, setUploading] = useState(false);
   const onDrop = useCallback(async (acceptedFiles) => {
     const file = acceptedFiles[0];
     if (file) {
@@ -37,20 +38,29 @@ export default function Register() {
       setError('');
       const formDataUpload = new FormData();
       formDataUpload.append('file', file);
+      setUploading(true);
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/upload?purpose=register`, {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+        console.log('Uploading to:', `${apiUrl}/upload?purpose=register`);
+        const res = await fetch(`${apiUrl}/upload?purpose=register`, {
           method: 'POST',
           body: formDataUpload,
         });
         if (!res.ok) {
-          throw new Error(`Upload failed: ${res.statusText}`);
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || `Upload failed: ${res.status} ${res.statusText}`);
         }
         const data = await res.json();
+        console.log('Upload success:', data);
         if (data.url) {
           setFormData(prev => ({ ...prev, verification_document_url: data.url }));
+          setError('');
         }
-      } catch {
-        setError('Upload failed. Please try again.');
+      } catch (err) {
+        console.error('Upload error:', err);
+        setError(`Upload failed: ${err.message}. Is backend running on port 5000?`);
+      } finally {
+        setUploading(false);
       }
     }
   }, []);
@@ -63,8 +73,14 @@ export default function Register() {
 
   const handleNext = (e) => {
     e.preventDefault();
-    if (formData.password !== formData.confirmPassword || formData.password.length < 8) {
-      setError("Passwords don't match or too short.");
+let passwordError = '';
+    if (formData.password.length < 6) {
+      passwordError = 'Password must be at least 6 characters long';
+    } else if (formData.password !== formData.confirmPassword) {
+      passwordError = 'Passwords do not match';
+    }
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
     if (formData.role === 'landlord' && formData.name && formData.email) {
@@ -77,7 +93,7 @@ export default function Register() {
   const handleBusinessNext = (e) => {
     e.preventDefault();
     if (!formData.business_name.trim()) {
-      setError('Business/Compound name required.');
+setError('Business or compound name is required for landlords.');
       return;
     }
     setCurrentStep(3);
@@ -85,11 +101,15 @@ export default function Register() {
 
   const handleSubmit = async () => {
     setLoading(true);
+    setError('');
     try {
       await authRegister(formData);
-      navigate("/");
+      // Success message and redirect
+      alert('Account created successfully! Welcome to UniBoard.');
+      navigate("/", { replace: true });
     } catch (err) {
-      setError(err?.message || "Registration failed.");
+      console.error('Register error:', err);
+setError(err?.message || 'Registration failed. Please check your information and try again.');
     } finally {
       setLoading(false);
     }
@@ -108,10 +128,11 @@ export default function Register() {
 
         <div className="card ub-auth-card">
           <div className="card-body p-4 p-md-5">
-            {error && (
-              <div className="alert alert-danger d-flex align-items-center gap-2 py-2 mb-4" role="alert">
-                <AlertTriangle size={20} className="flex-shrink-0" aria-hidden />
-                <span className="flex-grow-1">{error}</span>
+{error && (
+              <div className={`alert alert-danger d-flex align-items-center gap-2 py-3 mb-3 position-relative ${currentStep === 1 ? '' : 'mt-3'}`} role="alert" style={{borderRadius: '12px'}}>
+                <AlertTriangle size={20} className="flex-shrink-0 text-danger" aria-hidden />
+                <span className="flex-grow-1 ms-2 fw-medium">{error}</span>
+                <button type="button" className="btn-close btn-close-white flex-shrink-0 ms-2" onClick={() => setError('')} />
               </div>
             )}
 
@@ -289,7 +310,7 @@ export default function Register() {
                       id="reg-password"
                       type={showPassword ? "text" : "password"}
                       className="form-control border-start-0"
-                      placeholder="Min. 8 characters"
+                      placeholder="Min. 4 characters"
                       value={formData.password}
                       onChange={(e) => handleChange("password", e.target.value)}
                       required
@@ -384,9 +405,14 @@ export default function Register() {
                       </small>
                     </div>
                   )}
-                  {formData.verification_document_url && (
+{formData.verification_document_url && (
                     <div className="mt-3 p-2 bg-success-subtle rounded">
-                      <small>Cloud URL ready</small>
+                      <small>✅ {formData.verification_document_url.split('/').pop()}</small>
+                    </div>
+                  )}
+                  {uploading && (
+                    <div className="mt-2 p-2 bg-info-subtle rounded text-center">
+                      <small>Uploading... <span className="spinner-border spinner-border-sm" role="status" style={{width: '1em', height: '1em'}} /></small>
                     </div>
                   )}
                 </div>
@@ -394,11 +420,16 @@ export default function Register() {
                   <button type="button" className="btn btn-outline-secondary flex-grow-1" onClick={() => setCurrentStep(2)}>
                     Back
                   </button>
-                  <button onClick={handleSubmit} className="btn btn-primary flex-grow-1 fw-bold" disabled={loading || !formData.verification_document_url}>
+<button onClick={handleSubmit} className="btn btn-primary flex-grow-1 fw-bold" disabled={loading || uploading || !formData.verification_document_url}>
                     {loading ? (
                       <>
                         <span className="spinner-border spinner-border-sm me-2" />
                         Creating Account...
+                      </>
+                    ) : uploading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" />
+                        Uploading...
                       </>
                     ) : 'Create Account'}
                   </button>
