@@ -1,5 +1,5 @@
 const express = require("express");
-const { User, Property, PropertyImage, PropertyFeature, Compound, Building, Review } = require("../models");
+const { User, Property, PropertyImage, PropertyFeature, Review } = require("../models");
 const auth = require("../middleware/auth");
 
 const router = express.Router();
@@ -11,9 +11,21 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
+// Get all users with optional filtering
 router.get("/users", auth, requireAdmin, async (req, res) => {
   try {
+    const { role, status } = req.query;
+    let whereClause = {};
+
+    if (role) {
+      whereClause.role = role;
+    }
+    if (status) {
+      whereClause.status = status;
+    }
+
     const users = await User.findAll({
+      where: whereClause,
       attributes: { exclude: ["password"] },
       order: [["created_at", "DESC"]]
     });
@@ -25,6 +37,26 @@ router.get("/users", auth, requireAdmin, async (req, res) => {
   }
 });
 
+// Get pending landlord approvals
+router.get("/landlords/pending", auth, requireAdmin, async (req, res) => {
+  try {
+    const pendingLandlords = await User.findAll({
+      where: {
+        role: "landlord",
+        status: "pending"
+      },
+      attributes: { exclude: ["password"] },
+      order: [["created_at", "ASC"]]
+    });
+
+    res.json(pendingLandlords);
+  } catch (error) {
+    console.error("Error fetching pending landlords:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Update user role and status
 router.put("/users/:id", auth, requireAdmin, async (req, res) => {
   try {
     const { role, status } = req.body;
@@ -57,6 +89,7 @@ router.put("/users/:id", auth, requireAdmin, async (req, res) => {
   }
 });
 
+// Approve landlord account
 router.patch("/users/:id/approve-landlord", auth, requireAdmin, async (req, res) => {
   try {
     const user = await User.findByPk(req.params.id);
@@ -87,6 +120,40 @@ router.patch("/users/:id/approve-landlord", auth, requireAdmin, async (req, res)
   }
 });
 
+// Reject landlord account
+router.patch("/users/:id/reject-landlord", auth, requireAdmin, async (req, res) => {
+  try {
+    const { reason } = req.body;
+
+    const user = await User.findByPk(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.role !== "landlord") {
+      return res.status(400).json({ message: "Only landlord accounts can be rejected" });
+    }
+
+    await user.update({
+      status: "disabled",
+      isVerified: false,
+      rejection_reason: reason || null
+    });
+
+    const updatedUser = await User.findByPk(req.params.id, {
+      attributes: { exclude: ["password"] }
+    });
+
+    return res.json({
+      message: "Landlord rejected successfully",
+      user: updatedUser
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to reject landlord" });
+  }
+});
+
+// Ban/unban user
 router.patch("/users/:id/ban", auth, requireAdmin, async (req, res) => {
   try {
     const { banned } = req.body;
@@ -121,6 +188,7 @@ router.patch("/users/:id/ban", auth, requireAdmin, async (req, res) => {
   }
 });
 
+// Delete user
 router.delete("/users/:id", auth, requireAdmin, async (req, res) => {
   try {
     const user = await User.findByPk(req.params.id);
@@ -142,14 +210,23 @@ router.delete("/users/:id", auth, requireAdmin, async (req, res) => {
   }
 });
 
+// Get all properties (with optional filtering)
 router.get("/properties", auth, requireAdmin, async (req, res) => {
   try {
+    const { approved } = req.query;
+    let whereClause = {};
+
+    if (approved !== undefined) {
+      whereClause.approved = approved === 'true';
+    }
+
     const properties = await Property.findAll({
+      where: whereClause,
       include: [
         {
           model: User,
           as: "landlord",
-          attributes: ["name", "email"]
+          attributes: ["id", "name", "email", "business_name", "status"]
         }
       ],
       order: [["created_at", "DESC"]]
@@ -162,49 +239,65 @@ router.get("/properties", auth, requireAdmin, async (req, res) => {
   }
 });
 
-router.patch("/properties/:id/occupancy", auth, requireAdmin, async (req, res) => {
+// Get pending properties for approval
+router.get("/properties/pending", auth, requireAdmin, async (req, res) => {
   try {
-    const { action } = req.body;
-    if (!["increment", "decrement"].includes(action)) {
-      return res.status(400).json({ message: "action must be increment or decrement" });
-    }
+    const pendingProperties = await Property.findAll({
+      where: { approved: false },
+      include: [
+        {
+          model: PropertyImage,
+          as: 'images'
+        },
+        {
+          model: User,
+          as: "landlord",
+          attributes: ["id", "name", "email", "business_name", "nrc_front_url", "nrc_back_url"]
+        }
+      ],
+      order: [["created_at", "ASC"]]
+    });
 
-    const property = await Property.findByPk(req.params.id);
+    res.json(pendingProperties);
+  } catch (error) {
+    console.error("Error fetching pending properties:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Approve property
+router.patch("/properties/:id/approve", auth, requireAdmin, async (req, res) => {
+  try {
+    const property = await Property.findByPk(req.params.id, {
+      include: [
+        {
+          model: User,
+          as: "landlord",
+          attributes: ["name", "email"]
+        }
+      ]
+    });
+
     if (!property) {
       return res.status(404).json({ message: "Property not found" });
     }
 
-    let nextOccupied = property.occupied_beds;
-    if (action === "increment") {
-      if (property.occupied_beds >= property.total_beds) {
-        return res.status(400).json({ message: "Property is already full" });
-      }
-      nextOccupied += 1;
-    } else {
-      if (property.occupied_beds <= 0) {
-        return res.status(400).json({ message: "Occupied beds cannot go below 0" });
-      }
-      nextOccupied -= 1;
-    }
+    await property.update({ approved: true });
 
-    await property.update({ occupied_beds: nextOccupied });
-    return res.json({
-      message: "Occupancy updated successfully",
-      property: {
-        id: property.id,
-        total_beds: property.total_beds,
-        occupied_beds: nextOccupied,
-        available_beds: property.total_beds - nextOccupied
-      }
+    res.json({
+      message: "Property approved successfully",
+      property: property
     });
   } catch (error) {
-    return res.status(500).json({ message: "Failed to update occupancy" });
+    console.error("Error approving property:", error);
+    res.status(500).json({ message: error.message });
   }
 });
 
-router.put("/properties/:id", auth, requireAdmin, async (req, res) => {
+// Reject property
+router.patch("/properties/:id/reject", auth, requireAdmin, async (req, res) => {
   try {
-    const { approved } = req.body;
+    const { reason } = req.body;
 
     const property = await Property.findByPk(req.params.id, {
       include: [
@@ -220,15 +313,60 @@ router.put("/properties/:id", auth, requireAdmin, async (req, res) => {
       return res.status(404).json({ message: "Property not found" });
     }
 
-    await property.update({ approved });
+    await property.destroy();
 
-    res.json(property);
+    res.json({
+      message: "Property rejected and deleted successfully",
+      reason: reason || null
+    });
   } catch (error) {
-    console.error("Error updating property:", error);
+    console.error("Error rejecting property:", error);
     res.status(500).json({ message: error.message });
   }
 });
 
+// Update occupancy (bedspace management)
+router.patch("/properties/:id/occupancy", auth, requireAdmin, async (req, res) => {
+  try {
+    const { action } = req.body;
+    if (!["increment", "decrement"].includes(action)) {
+      return res.status(400).json({ message: "action must be increment or decrement" });
+    }
+
+    const property = await Property.findByPk(req.params.id);
+    if (!property) {
+      return res.status(404).json({ message: "Property not found" });
+    }
+
+    let nextOccupied = property.occupied_bedspaces;
+    if (action === "increment") {
+      if (property.occupied_bedspaces >= property.total_bedspaces) {
+        return res.status(400).json({ message: "Property is already full" });
+      }
+      nextOccupied += 1;
+    } else {
+      if (property.occupied_bedspaces <= 0) {
+        return res.status(400).json({ message: "Occupied bedspaces cannot go below 0" });
+      }
+      nextOccupied -= 1;
+    }
+
+    await property.update({ occupied_bedspaces: nextOccupied });
+    return res.json({
+      message: "Occupancy updated successfully",
+      property: {
+        id: property.id,
+        total_bedspaces: property.total_bedspaces,
+        occupied_bedspaces: nextOccupied,
+        available_bedspaces: property.total_bedspaces - nextOccupied
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update occupancy" });
+  }
+});
+
+// Delete property
 router.delete("/properties/:id", auth, requireAdmin, async (req, res) => {
   try {
     const property = await Property.findByPk(req.params.id);
@@ -246,35 +384,7 @@ router.delete("/properties/:id", auth, requireAdmin, async (req, res) => {
   }
 });
 
-router.get("/compounds", auth, requireAdmin, async (req, res) => {
-  try {
-    const compounds = await Compound.findAll({
-      include: [
-        { model: User, as: "landlord", attributes: ["name", "email"] },
-        { model: Building, as: "buildings", attributes: ["id", "name"] }
-      ],
-      order: [["created_at", "DESC"]]
-    });
-    return res.json(compounds);
-  } catch (error) {
-    return res.status(500).json({ message: "Failed to fetch compounds" });
-  }
-});
-
-router.delete("/compounds/:id", auth, requireAdmin, async (req, res) => {
-  try {
-    const compound = await Compound.findByPk(req.params.id);
-    if (!compound) {
-      return res.status(404).json({ message: "Compound not found" });
-    }
-
-    await compound.destroy();
-    return res.json({ message: "Compound deleted successfully" });
-  } catch (error) {
-    return res.status(500).json({ message: "Failed to delete compound" });
-  }
-});
-
+// Get admin statistics
 router.get("/stats", auth, requireAdmin, async (req, res) => {
   try {
     const totalUsers = await User.count();
@@ -283,6 +393,9 @@ router.get("/stats", auth, requireAdmin, async (req, res) => {
     const pendingProperties = await Property.count({ where: { approved: false } });
     const pendingLandlords = await User.count({
       where: { role: "landlord", status: "pending" }
+    });
+    const activeLandlords = await User.count({
+      where: { role: "landlord", status: "active" }
     });
 
     const usersByRole = await User.findAll({
@@ -306,8 +419,7 @@ router.get("/stats", auth, requireAdmin, async (req, res) => {
       approvedProperties,
       pendingProperties,
       pendingLandlords,
-      totalBookings: 0,
-      totalRevenue: 0,
+      activeLandlords,
       usersByRole,
       averagePrice: averagePrice[0]?.dataValues?.avgPrice || 0
     });
@@ -317,6 +429,7 @@ router.get("/stats", auth, requireAdmin, async (req, res) => {
   }
 });
 
+// Get all reviews
 router.get("/reviews", auth, requireAdmin, async (req, res) => {
   try {
     const reviews = await Review.findAll({
@@ -328,7 +441,7 @@ router.get("/reviews", auth, requireAdmin, async (req, res) => {
         },
         {
           model: Property,
-          as: "listing",
+          as: "property",
           attributes: ["name", "location"]
         }
       ],
@@ -342,6 +455,7 @@ router.get("/reviews", auth, requireAdmin, async (req, res) => {
   }
 });
 
+// Delete review
 router.delete("/reviews/:id", auth, requireAdmin, async (req, res) => {
   try {
     const review = await Review.findByPk(req.params.id);

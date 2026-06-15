@@ -1,7 +1,7 @@
 const express = require("express");
 const { Op, literal } = require('sequelize');
 const jwt = require("jsonwebtoken");
-const { Property, PropertyImage, PropertyFeature, User, Building, Compound, Review } = require("../models");
+const { Property, PropertyImage, PropertyFeature, User, Review } = require("../models");
 const auth = require("../middleware/auth");
 
 const router = express.Router();
@@ -54,9 +54,7 @@ router.get("/", async (req, res) => {
         [Op.or]: [
           { name: { [Op.like]: `%${search}%` } },
           { location: { [Op.like]: `%${search}%` } },
-          { description: { [Op.like]: `%${search}%` } },
-          { '$Compound.name$': { [Op.like]: `%${search}%` } },
-          { '$Compound.location$': { [Op.like]: `%${search}%` } }
+          { description: { [Op.like]: `%${search}%` } }
         ]
       };
     }
@@ -86,7 +84,7 @@ router.get("/", async (req, res) => {
     // Availability filter
     if (available_only === 'true') {
       whereClause[Op.and] = [
-        literal('`properties`.`total_beds` - `properties`.`occupied_beds` > 0')
+        literal('`properties`.`total_bedspaces` - `properties`.`occupied_bedspaces` > 0')
       ];
     }
 
@@ -96,7 +94,7 @@ router.get("/", async (req, res) => {
     const offset = (pageNum - 1) * limitNum;
 
     // Sorting
-    const validSortFields = ['created_at', 'price', 'name', 'total_beds'];
+    const validSortFields = ['created_at', 'price', 'name', 'total_bedspaces'];
     const sortField = validSortFields.includes(sort_by) ? sort_by : 'created_at';
     const sortDirection = sort_order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
@@ -109,17 +107,9 @@ router.get("/", async (req, res) => {
           limit: 1
         },
         {
-          model: Building,
-          as: 'building',
-          include: [{
-            model: Compound,
-            as: 'compound'
-          }]
-        },
-        {
           model: User,
           as: 'landlord',
-          attributes: ['name']
+          attributes: ['name', 'business_name']
         }
       ],
       order: [[sortField, sortDirection]],
@@ -130,18 +120,18 @@ router.get("/", async (req, res) => {
 
     // Format response
     const formattedProperties = properties.map(property => ({
-      available_beds: property.total_beds - property.occupied_beds,
-      availability_status: getAvailabilityStatus(property.total_beds - property.occupied_beds),
+      available_bedspaces: property.total_bedspaces - property.occupied_bedspaces,
+      availability_status: getAvailabilityStatus(property.total_bedspaces - property.occupied_bedspaces),
       id: property.id,
       name: property.name,
       price: property.price,
       location: property.location,
+      distance_from_campus_minutes: property.distance_from_campus_minutes,
       room_type: property.room_type,
-      total_beds: property.total_beds,
-      occupied_beds: property.occupied_beds,
+      total_bedspaces: property.total_bedspaces,
+      occupied_bedspaces: property.occupied_bedspaces,
       image: property.images && property.images.length > 0 ? property.images[0].image_url : null,
-      compound: property.building?.compound?.name,
-      building: property.building?.name,
+      business_name: property.landlord?.business_name,
       landlord_name: property.landlord?.name
     }));
 
@@ -173,9 +163,9 @@ router.get("/mine", auth, async (req, res) => {
       where: whereClause,
       include: [
         {
-          model: Building,
-          as: "building",
-          include: [{ model: Compound, as: "compound" }]
+          model: User,
+          as: 'landlord',
+          attributes: ['name', 'business_name']
         }
       ],
       order: [["created_at", "DESC"]]
@@ -185,14 +175,15 @@ router.get("/mine", auth, async (req, res) => {
       id: property.id,
       name: property.name,
       location: property.location,
+      distance_from_campus_minutes: property.distance_from_campus_minutes,
       price: property.price,
       approved: property.approved,
-      total_beds: property.total_beds,
-      occupied_beds: property.occupied_beds,
-      available_beds: property.total_beds - property.occupied_beds,
-      availability_status: getAvailabilityStatus(property.total_beds - property.occupied_beds),
-      compound: property.building?.compound?.name || null,
-      building: property.building?.name || null
+      total_bedspaces: property.total_bedspaces,
+      occupied_bedspaces: property.occupied_bedspaces,
+      available_bedspaces: property.total_bedspaces - property.occupied_bedspaces,
+      availability_status: getAvailabilityStatus(property.total_bedspaces - property.occupied_bedspaces),
+      business_name: property.landlord?.business_name,
+      room_type: property.room_type
     }));
 
     return res.json(formatted);
@@ -201,7 +192,7 @@ router.get("/mine", auth, async (req, res) => {
   }
 });
 
-// Get property details (full info only for authenticated users)
+// Get property details (guest vs authenticated access model)
 router.get("/:id", async (req, res) => {
   try {
     const property = await Property.findByPk(req.params.id, {
@@ -215,17 +206,9 @@ router.get("/:id", async (req, res) => {
           as: 'features'
         },
         {
-          model: Building,
-          as: 'building',
-          include: [{
-            model: Compound,
-            as: 'compound'
-          }]
-        },
-        {
           model: User,
           as: 'landlord',
-          attributes: ['name', 'phone', 'email']
+          attributes: ['name', 'phone', 'email', 'business_name']
         },
         {
           model: Review,
@@ -259,23 +242,24 @@ router.get("/:id", async (req, res) => {
       name: property.name,
       description: isGuest ? property.description.substring(0, 100) + '...' : property.description,
       location: property.location,
+      distance_from_campus_minutes: property.distance_from_campus_minutes,
       price: property.price,
       room_type: property.room_type,
-      total_beds: isGuest ? null : property.total_beds,
-      occupied_beds: isGuest ? null : property.occupied_beds,
-      available_beds: isGuest ? null : (property.total_beds - property.occupied_beds),
-      availability_status: isGuest ? null : getAvailabilityStatus(property.total_beds - property.occupied_beds),
+      total_bedspaces: isGuest ? null : property.total_bedspaces,
+      occupied_bedspaces: isGuest ? null : property.occupied_bedspaces,
+      available_bedspaces: isGuest ? null : (property.total_bedspaces - property.occupied_bedspaces),
+      availability_status: isGuest ? null : getAvailabilityStatus(property.total_bedspaces - property.occupied_bedspaces),
       approved: property.approved,
       images: isGuest ? (property.images[0] ? [property.images[0].image_url] : []) : property.images.map(img => img.image_url),
-      features: isGuest ? [] : property.features.map(feat => feat.feature),
-      building: property.building?.name,
-      compound: property.building?.compound?.name,
+      amenities: isGuest ? [] : property.amenities,
       average_rating: parseFloat(averageRating),
       review_count: reviewCount,
+      business_name: property.landlord?.business_name,
       landlord: isGuest ? { name: property.landlord?.name } : {
         name: property.landlord?.name,
-        phone: property.phone || property.landlord?.phone,
-        whatsapp: property.whatsapp || property.landlord?.phone,
+        business_name: property.landlord?.business_name,
+        phone: property.phone_number || property.landlord?.phone,
+        whatsapp: property.whatsapp_number || property.landlord?.phone,
         email: property.landlord?.email || null
       }
     };
@@ -287,7 +271,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// Create property (landlord only)
+// Create property (landlord only - requires approval)
 router.post("/", auth, async (req, res) => {
   try {
     if (req.user.role !== "landlord" && req.user.role !== "admin") {
@@ -302,24 +286,26 @@ router.post("/", auth, async (req, res) => {
       name,
       description,
       location,
+      distance_from_campus_minutes,
       price,
-      phone,
-      whatsapp,
+      phone_number,
+      whatsapp_number,
       room_type,
-      total_beds,
-      occupied_beds,
-      building_id,
-      features,
+      total_bedspaces,
+      occupied_bedspaces,
+      amenities,
       images
     } = req.body;
 
-    const allowedRoomTypes = ["single", "bedsitter", "self-contained", "bunkered"];
+    const allowedRoomTypes = ["single", "bankers room", "shared room", "self-contained"];
     const parsedPrice = Number(price);
-    const parsedTotalBeds = Number(total_beds);
-    const parsedOccupiedBeds = occupied_beds === undefined ? 0 : Number(occupied_beds);
+    const parsedTotalBedspaces = Number(total_bedspaces);
+    const parsedOccupiedBedspaces = occupied_bedspaces === undefined ? 0 : Number(occupied_bedspaces);
+    const parsedDistance = distance_from_campus_minutes ? Number(distance_from_campus_minutes) : null;
 
-    if (!name || !description || !location || !phone || !whatsapp || !room_type || !building_id) {
-      return res.status(400).json({ message: "Missing required listing fields" });
+    // Validation
+    if (!name || !description || !location || !phone_number || !room_type) {
+      return res.status(400).json({ message: "Missing required fields" });
     }
     if (!allowedRoomTypes.includes(room_type)) {
       return res.status(400).json({ message: "Invalid room type" });
@@ -327,59 +313,34 @@ router.post("/", auth, async (req, res) => {
     if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
       return res.status(400).json({ message: "Price must be a valid non-negative number" });
     }
-    if (!Number.isInteger(parsedTotalBeds) || parsedTotalBeds < 1) {
-      return res.status(400).json({ message: "Total beds must be an integer >= 1" });
+    if (!Number.isInteger(parsedTotalBedspaces) || parsedTotalBedspaces < 1) {
+      return res.status(400).json({ message: "Total bedspaces must be an integer >= 1" });
     }
-    if (!Number.isInteger(parsedOccupiedBeds) || parsedOccupiedBeds < 0 || parsedOccupiedBeds > parsedTotalBeds) {
-      return res.status(400).json({ message: "Occupied beds must be between 0 and total beds" });
+    if (!Number.isInteger(parsedOccupiedBedspaces) || parsedOccupiedBedspaces < 0 || parsedOccupiedBedspaces > parsedTotalBedspaces) {
+      return res.status(400).json({ message: "Occupied bedspaces must be between 0 and total bedspaces" });
     }
-    if (features && (!Array.isArray(features) || features.length > 6)) {
-      return res.status(400).json({ message: "Features must be an array with a maximum of 6 items" });
-    }
-    if (images && (!Array.isArray(images) || images.length > 8)) {
-      return res.status(400).json({ message: "Maximum 8 images allowed per listing" });
-    }
-
-    const building = await Building.findByPk(building_id, {
-      include: [{ model: Compound, as: "compound" }]
-    });
-    if (!building) {
-      return res.status(404).json({ message: "Building not found" });
-    }
-    if (req.user.role !== "admin" && building.compound?.landlord_id !== req.user.id) {
-      return res.status(403).json({ message: "Not authorized for this building" });
+    if (images && (!Array.isArray(images) || images.length > 12)) {
+      return res.status(400).json({ message: "Maximum 12 images allowed per property" });
     }
 
     const property = await Property.create({
       name,
       description,
       location,
+      distance_from_campus_minutes: parsedDistance,
       price: parsedPrice,
-      phone,
-      whatsapp,
+      phone_number,
+      whatsapp_number: whatsapp_number || null,
       room_type,
-      total_beds: parsedTotalBeds,
-      occupied_beds: parsedOccupiedBeds,
-      building_id,
-      landlord_id: req.user.id
+      total_bedspaces: parsedTotalBedspaces,
+      occupied_bedspaces: parsedOccupiedBedspaces,
+      amenities: amenities || [],
+      landlord_id: req.user.id,
+      approved: false // Properties require admin approval
     });
-
-    // Add features
-    if (features && Array.isArray(features)) {
-      const featurePromises = features.map(feature =>
-        PropertyFeature.create({
-          property_id: property.id,
-          feature
-        })
-      );
-      await Promise.all(featurePromises);
-    }
 
     // Add images
     if (images && Array.isArray(images)) {
-      if (images.length > 8) {
-        return res.status(400).json({ message: "Maximum 8 images allowed per listing" });
-      }
       const imagePromises = images.map(image_url =>
         PropertyImage.create({
           property_id: property.id,
@@ -390,8 +351,8 @@ router.post("/", auth, async (req, res) => {
     }
 
     res.status(201).json({
-      message: "Listing created successfully",
-      property: { id: property.id, name: property.name }
+      message: "Property created successfully. Awaiting admin approval.",
+      property: { id: property.id, name: property.name, approved: false }
     });
   } catch (error) {
     console.error('Error creating property:', error);
@@ -424,13 +385,14 @@ router.put("/:id", auth, async (req, res) => {
       name,
       description,
       location,
+      distance_from_campus_minutes,
       price,
-      phone,
-      whatsapp,
+      phone_number,
+      whatsapp_number,
       room_type,
-      total_beds,
-      occupied_beds,
-      features,
+      total_bedspaces,
+      occupied_bedspaces,
+      amenities,
       images
     } = req.body;
 
@@ -438,35 +400,20 @@ router.put("/:id", auth, async (req, res) => {
       name,
       description,
       location,
+      distance_from_campus_minutes,
       price,
-      phone,
-      whatsapp,
+      phone_number,
+      whatsapp_number,
       room_type,
-      total_beds,
-      occupied_beds
+      total_bedspaces,
+      occupied_bedspaces,
+      amenities
     });
-
-    // Update features
-    if (features !== undefined) {
-      await PropertyFeature.destroy({ where: { property_id: property.id } });
-      if (Array.isArray(features)) {
-        const featurePromises = features.map(feature =>
-          PropertyFeature.create({
-            property_id: property.id,
-            feature
-          })
-        );
-        await Promise.all(featurePromises);
-      }
-    }
 
     // Update images
     if (images !== undefined) {
       await PropertyImage.destroy({ where: { property_id: property.id } });
-      if (Array.isArray(images)) {
-        if (images.length > 8) {
-          return res.status(400).json({ message: "Maximum 8 images allowed per property" });
-        }
+      if (Array.isArray(images) && images.length > 0) {
         const imagePromises = images.map(image_url =>
           PropertyImage.create({
             property_id: property.id,
@@ -477,67 +424,17 @@ router.put("/:id", auth, async (req, res) => {
       }
     }
 
-    res.json({ message: "Property updated successfully" });
+    res.json({
+      message: "Property updated successfully",
+      property: { id: property.id, name: property.name }
+    });
   } catch (error) {
     console.error('Error updating property:', error);
     res.status(500).json({ message: error.message });
   }
 });
 
-// Landlord/admin occupancy controls
-router.patch("/:id/occupancy", auth, async (req, res) => {
-  try {
-    if (req.user.role !== "landlord" && req.user.role !== "admin") {
-      return res.status(403).json({ message: "Not authorized to manage occupancy" });
-    }
-
-    if (req.user.role === "landlord" && req.user.status !== "active") {
-      return res.status(403).json({ message: "Your landlord account is awaiting admin approval" });
-    }
-
-    const { action } = req.body;
-    if (!["increment", "decrement"].includes(action)) {
-      return res.status(400).json({ message: "action must be increment or decrement" });
-    }
-
-    const property = await Property.findByPk(req.params.id);
-    if (!property) {
-      return res.status(404).json({ message: "Property not found" });
-    }
-
-    if (property.landlord_id !== req.user.id && req.user.role !== "admin") {
-      return res.status(403).json({ message: "Not authorized to manage this property" });
-    }
-
-    let nextOccupied = property.occupied_beds;
-    if (action === "increment") {
-      if (property.occupied_beds >= property.total_beds) {
-        return res.status(400).json({ message: "Property is already full" });
-      }
-      nextOccupied += 1;
-    } else {
-      if (property.occupied_beds <= 0) {
-        return res.status(400).json({ message: "Occupied beds cannot go below 0" });
-      }
-      nextOccupied -= 1;
-    }
-
-    await property.update({ occupied_beds: nextOccupied });
-    return res.json({
-      message: "Occupancy updated successfully",
-      property: {
-        id: property.id,
-        total_beds: property.total_beds,
-        occupied_beds: nextOccupied,
-        available_beds: property.total_beds - nextOccupied
-      }
-    });
-  } catch (error) {
-    return res.status(500).json({ message: "Failed to update occupancy" });
-  }
-});
-
-// Delete property (landlord or admin)
+// Delete property (landlord/admin only)
 router.delete("/:id", auth, async (req, res) => {
   try {
     if (req.user.role !== "landlord" && req.user.role !== "admin") {
@@ -554,9 +451,8 @@ router.delete("/:id", auth, async (req, res) => {
       return res.status(403).json({ message: "Not authorized to delete this property" });
     }
 
-    // Delete related records
-    await PropertyFeature.destroy({ where: { property_id: property.id } });
     await PropertyImage.destroy({ where: { property_id: property.id } });
+    await PropertyFeature.destroy({ where: { property_id: property.id } });
     await property.destroy();
 
     res.json({ message: "Property deleted successfully" });
