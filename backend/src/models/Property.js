@@ -7,6 +7,14 @@ const Property = sequelize.define('Property', {
     primaryKey: true,
     autoIncrement: true
   },
+  landlord_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
+  },
   name: {
     type: DataTypes.STRING(255),
     allowNull: false,
@@ -16,32 +24,34 @@ const Property = sequelize.define('Property', {
   },
   description: {
     type: DataTypes.TEXT,
-    allowNull: true
-  },
-  location: {
-    type: DataTypes.STRING(255),
-    allowNull: true
+    allowNull: false
   },
   price: {
     type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    validate: {
+      min: 0
+    }
+  },
+  location: {
+    type: DataTypes.STRING(255),
+    allowNull: false
+  },
+  distance_from_campus_minutes: {
+    type: DataTypes.INTEGER,
     allowNull: true,
     validate: {
       min: 0
     }
   },
-  phone: {
-    type: DataTypes.STRING(20),
-    allowNull: true
+  images: {
+    type: DataTypes.JSON, // Store as JSON array of Cloudinary URLs
+    allowNull: false,
+    validate: {
+      notEmpty: true
+    }
   },
-  whatsapp: {
-    type: DataTypes.STRING(20),
-    allowNull: true
-  },
-  room_type: {
-    type: DataTypes.ENUM('single', 'bedsitter', 'self-contained', 'bunkered'),
-    allowNull: true
-  },
-  total_beds: {
+  total_bedspaces: {
     type: DataTypes.INTEGER,
     allowNull: false,
     defaultValue: 1,
@@ -49,7 +59,7 @@ const Property = sequelize.define('Property', {
       min: 1
     }
   },
-  occupied_beds: {
+  occupied_bedspaces: {
     type: DataTypes.INTEGER,
     allowNull: false,
     defaultValue: 0,
@@ -57,21 +67,21 @@ const Property = sequelize.define('Property', {
       min: 0
     }
   },
-  building_id: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'buildings',
-      key: 'id'
-    }
+  phone_number: {
+    type: DataTypes.STRING(20),
+    allowNull: false
   },
-  landlord_id: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'users',
-      key: 'id'
-    }
+  whatsapp_number: {
+    type: DataTypes.STRING(20),
+    allowNull: true
+  },
+  room_type: {
+    type: DataTypes.ENUM('single', 'bankers room', 'shared room', 'self-contained'),
+    defaultValue: 'single'
+  },
+  amenities: {
+    type: DataTypes.JSON, // Store as JSON array
+    defaultValue: []
   },
   approved: {
     type: DataTypes.BOOLEAN,
@@ -83,8 +93,8 @@ const Property = sequelize.define('Property', {
   createdAt: 'created_at',
   updatedAt: 'updated_at',
   getterMethods: {
-    availableBeds() {
-      return this.total_beds - this.occupied_beds;
+    available_bedspaces() {
+      return this.total_bedspaces - this.occupied_bedspaces;
     }
   }
 });

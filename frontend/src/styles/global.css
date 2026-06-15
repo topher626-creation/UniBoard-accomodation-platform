@@ -310,9 +310,10 @@ h6 {
       rgba(30, 64, 175, 0.85) 45%,
       rgba(37, 99, 235, 0.82) 100%
     ),
-    url("https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1920&q=80");
+    url("../assets/images/Image 2.jpg");
   background-size: cover;
   background-position: center;
+  background-attachment: fixed;
 }
 
 .ub-hero--photo::before {
@@ -416,29 +417,51 @@ h6 {
 
   /* Hero Section - Mobile Responsive */
   .ub-hero {
-    padding-bottom: 100px !important;
+    padding-bottom: 120px !important;
+    padding-top: 3rem !important;
   }
 
   .ub-hero h1 {
     font-size: 1.75rem;
     line-height: 1.2;
+    margin-bottom: 1rem;
   }
 
   .ub-hero .lead {
     font-size: 1rem;
+    margin-bottom: 1.5rem;
   }
 
   .ub-hero .btn {
     width: 100%;
+    min-height: 48px;
+    font-size: 16px;
   }
 
   /* Search Form - Full Width on Mobile */
   .ub-hero form .row {
     width: 100%;
+    gap: 0.75rem !important;
   }
 
   .ub-hero form .col-12 {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0;
+  }
+
+  .ub-hero form .form-control,
+  .ub-hero form .form-select {
+    min-height: 48px;
+    font-size: 16px;
+    border-radius: 24px;
+    padding: 0.75rem 1.25rem;
+  }
+
+  /* Ensure form inputs are clickable */
+  .ub-hero form input,
+  .ub-hero form select,
+  .ub-hero form button {
+    position: relative;
+    z-index: 10;
   }
 
   /* Property Grid - Stack on Mobile */

@@ -70,9 +70,9 @@ function Home() {
       {/* Hero Section */}
       <section
         className="ub-hero ub-hero--photo text-white py-5 mb-4 relative overflow-hidden"
-        style={{ paddingBottom: "150px" }}
+        style={{ paddingBottom: "150px", position: "relative", zIndex: 1 }}
       >
-        <div className="container py-3 relative z-10">
+        <div className="container py-3 position-relative" style={{ zIndex: 10 }}>
           <div className="row align-items-center g-4">
             <div className="col-lg-7">
               <span className="badge rounded-pill mb-3" style={{ background: "rgba(255,255,255,0.2)", color: "#fff", fontSize: "0.8rem" }}>
@@ -87,7 +87,7 @@ function Home() {
               </p>
 
               {/* Hero Search */}
-              <form onSubmit={handleSearch} className="w-100">
+              <form onSubmit={handleSearch} className="w-100" style={{ position: "relative", zIndex: 20 }}>
                 <div className="row g-2 g-lg-3">
                   <div className="col-12 col-sm-6 col-lg-4">
                     <input
@@ -162,7 +162,7 @@ function Home() {
                   width: "min(420px, 42vw)",
                   height: "auto",
                   opacity: 0.12,
-                  zIndex: 1,
+                  zIndex: 0,
                   pointerEvents: "none",
                 }}
                 decoding="async"

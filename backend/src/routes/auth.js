@@ -18,14 +18,15 @@ const signAuthToken = (userId) =>
 // Register
 router.post("/register", async (req, res) => {
   try {
-const { name, email, password, phone, role, business_name, verification_document_url, nrc } = req.body;
+const { name, email, password, phone, role, business_name, verification_document_url, nrc_front, nrc_back, gender, university } = req.body;
     const normalizedName = (name || "").trim();
     const normalizedEmail = (email || "").trim().toLowerCase();
     const normalizedRole = role || "student";
     const normalizedBusinessName = (business_name || "").trim();
     const normalizedPhone = (phone || "").trim();
 const normalizedVerificationDocUrl = (verification_document_url || "").trim();
-  const normalizedNrcUrl = (nrc || "").trim();
+    const normalizedNrcFrontUrl = (nrc_front || "").trim();
+    const normalizedNrcBackUrl = (nrc_back || "").trim();
 
     if (!normalizedName || !normalizedEmail || !password) {
       return res.status(400).json({ message: "Name, email and password are required" });
@@ -72,7 +73,10 @@ const normalizedVerificationDocUrl = (verification_document_url || "").trim();
       business_name: normalizedRole === "landlord" ? normalizedBusinessName : null,
       verification_document_url: normalizedVerificationDocUrl || null,
       verification_url: verificationUrl,
-      nrc_url: normalizedNrcUrl || null,
+      nrc_front_url: normalizedNrcFrontUrl || null,
+      nrc_back_url: normalizedNrcBackUrl || null,
+      gender: gender || null,
+      university: university || null,
       status: normalizedRole === "landlord" ? "pending" : "active",
       isVerified: normalizedRole === "student"
     });
@@ -89,7 +93,9 @@ const normalizedVerificationDocUrl = (verification_document_url || "").trim();
       business_name: user.business_name,
       status: user.status,
       isVerified: user.isVerified,
-      verification_url: user.verification_url
+      verification_url: user.verification_url,
+      gender: user.gender,
+      university: user.university
     };
 
     res.status(201).json({
@@ -154,7 +160,9 @@ router.post("/login", async (req, res) => {
         business_name: user.business_name,
         status: user.status,
         isVerified: user.isVerified,
-        is_banned: user.is_banned
+        is_banned: user.is_banned,
+        gender: user.gender,
+        university: user.university
       }
     });
   } catch (error) {

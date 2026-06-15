@@ -47,8 +47,20 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING(500),
     allowNull: true
   },
-  nrc_url: {
+  nrc_front_url: {
     type: DataTypes.STRING(500),
+    allowNull: true
+  },
+  nrc_back_url: {
+    type: DataTypes.STRING(500),
+    allowNull: true
+  },
+  gender: {
+    type: DataTypes.ENUM('Male', 'Female', 'Other'),
+    allowNull: true
+  },
+  university: {
+    type: DataTypes.STRING(255),
     allowNull: true
   },
   role: {
