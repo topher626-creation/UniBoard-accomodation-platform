@@ -79,25 +79,33 @@
 
 ---
 
-## Phase 3: Backend Routes Refactoring 🔄 PENDING
+## Phase 3: Backend Routes Refactoring ✅ COMPLETED
 
-### Tasks to Complete
+### Completed Tasks
 
-1. **Update Properties Routes**
-   - Refactor to use new Property model fields
-   - Implement property creation with new form structure
-   - Add bedspace management endpoints
-   - Implement admin approval workflow
+1. **Properties Routes** ✅
+   - Refactored to use new Property model fields (bedspaces instead of beds)
+   - Removed Building and Compound references
+   - Updated property creation to require admin approval
+   - Implemented guest vs authenticated access model
+   - Updated filtering to use total_bedspaces and occupied_bedspaces
+   - Added distance_from_campus_minutes field support
+   - Updated amenities to use JSON field
+   - Changed max images from 8 to 12
+   - Removed PropertyFeature endpoints (using JSON amenities instead)
 
-2. **Update Admin Routes**
-   - Create verification queue endpoints
-   - Implement property approval/rejection logic
-   - Add landlord approval endpoints
+2. **Admin Routes** ✅
+   - Created pending landlord approval endpoints
+   - Implemented property approval/rejection workflow
+   - Added landlord approval and rejection with reason tracking
+   - Created pending properties queue endpoint
+   - Updated statistics endpoint with active landlords count
+   - Fixed Review associations to use property instead of listing
+   - Added bedspace occupancy management
+   - Removed Compound and Building management endpoints
 
-3. **Update Authentication Routes**
-   - Ensure landlord registration captures business name
-   - Validate NRC uploads
-   - Set proper initial status (pending for landlords)
+3. **Authentication Routes** ✅
+   - Already updated in Phase 2 to capture gender, university, NRC fields
 
 ---
 
