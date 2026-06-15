@@ -1,7 +1,7 @@
 # UniBoard Business Model Implementation Progress
 
 **Date Started**: June 15, 2026  
-**Current Phase**: Backend ORM Unification and Model Refactoring  
+**Current Phase**: Frontend Dashboard Refactoring  
 **Status**: In Progress
 
 ---
@@ -31,7 +31,7 @@
 
 ---
 
-## Phase 2: Backend ORM Unification & Model Refactoring 🔄 IN PROGRESS
+## Phase 2: Backend ORM Unification & Model Refactoring ✅ COMPLETED
 
 ### Completed Tasks
 
@@ -109,19 +109,27 @@
 
 ---
 
-## Phase 4: Frontend Dashboard Refactoring 🔄 PENDING
+## Phase 4: Frontend Dashboard Refactoring ✅ COMPLETED
 
-### Tasks to Complete
+### Completed Tasks
 
-1. **Landlord Dashboard**
-   - Display business name and verification status
-   - Show dashboard overview with property statistics
-   - Simplified sidebar (remove Compounds, Buildings)
+1. **Refactor Landlord Dashboard** ✅
+   - Removed Booking/Compound/Building tabs for a cleaner interface
+   - Implemented "My Properties" simplified view with status badges
+   - Added verification status banners (Pending/Verified)
+   - Updated statistics: Total Properties, Total Bedspaces, Occupied Bedspaces, Available Bedspaces
+   - Added quick-action dropdowns for property management
 
-2. **Property Management**
-   - List all properties with bedspace information
-   - Add property creation form
-   - Edit/delete property functionality
+2. **Refactor Admin Dashboard** ✅
+   - Created verification queue UI for landlords with NRC document links
+   - Created verification queue UI for properties for admin review
+   - Updated system statistics with average price and active landlord counts
+   - Implemented approval/rejection logic with reason prompts
+
+3. **Update Sidebar/Navigation** ✅
+   - Removed "Bookings" from mobile and sidebar navigation
+   - Updated labels: "Search" → "Explore", added role-based "Dashboard" link
+   - Updated `api.js` to support new verification endpoints and remove obsolete methods
 
 ---
 
@@ -152,18 +160,7 @@
 
 ---
 
-## Phase 7: Admin Dashboard 🔄 PENDING
-
-### Tasks to Complete
-
-1. **Verification Queue**
-   - Display pending landlord approvals
-   - Show NRC documents
-   - Approve/reject functionality
-
----
-
-## Phase 8: Testing & Deployment 🔄 PENDING
+## Phase 7: Testing & Deployment 🔄 PENDING
 
 ### Tasks to Complete
 
@@ -182,7 +179,7 @@
 | **User Fields** | Basic fields | + gender, university, nrc_front_url, nrc_back_url | ✅ |
 | **Property Fields** | Complex location structure | Simplified + bedspace management | ✅ |
 | **ORM** | Mixed (Sequelize) | Unified Sequelize | ✅ |
-| **Dashboard** | Compound hierarchy | Simplified structure | 🔄 |
+| **Dashboard** | Compound hierarchy | Simplified structure | ✅ |
 | **Registration** | Basic | + NRC, gender, university | ✅ |
 
 ---
@@ -194,14 +191,18 @@
 - ✅ `backend/src/models/Property.js` - Consolidated from Listing.js
 - ✅ `backend/src/models/index.js` - Updated associations, removed Compound/Building
 - ✅ `backend/src/routes/auth.js` - Updated registration and login endpoints
+- ✅ `backend/src/routes/properties.js` - Refactored to new model structure
+- ✅ `backend/src/routes/admin.js` - Added verification queues and statistics
 - 🗑️ `backend/src/models/Compound.js` - DELETED
 - 🗑️ `backend/src/models/Building.js` - DELETED
 
 ### Frontend
-- 🔄 Pending: Dashboard refactoring
+- ✅ `frontend/src/pages/LandlordDashboard.jsx` - Simplified dashboard UI
+- ✅ `frontend/src/pages/AdminDashboard.jsx` - Added verification queues
+- ✅ `frontend/src/services/api.js` - Updated API methods
+- ✅ `frontend/src/components/MobileLayout.jsx` - Updated navigation
 - 🔄 Pending: Property creation form
 - 🔄 Pending: Student registration
-- 🔄 Pending: Admin dashboard
 
 ---
 
@@ -209,16 +210,14 @@
 
 - All changes maintain backward compatibility with existing authentication
 - Database will auto-sync on next server start (alter: true)
-- Future phases will focus on frontend implementation
+- Future phases will focus on property creation and student registration
 - Booking, Payment, and Map features are deferred to future phases
 
 ---
 
 ## Next Steps
 
-1. Update all backend routes to use new Property model structure
-2. Implement admin approval workflow
-3. Refactor frontend Dashboard component
-4. Build new Property Creation form
-5. Update Student Registration flow
-6. Implement Admin Verification Queue
+1. Build new Property Creation form
+2. Update Student Registration flow
+3. Implement Guest vs. Authenticated Property Access
+4. Final Testing
