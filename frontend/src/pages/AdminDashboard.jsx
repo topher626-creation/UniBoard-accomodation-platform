@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { 
+  Users, Building2, Clock, CheckCircle, XCircle, 
+  ShieldCheck, ShieldAlert, BarChart3, FileText, Trash2
+} from "lucide-react";
 import { useAuthStore } from "../stores/authStore";
 import { api } from "../services/api";
 
@@ -7,8 +11,9 @@ function AdminDashboard() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
-  const [users, setUsers] = useState([]);
-  const [properties, setProperties] = useState([]);
+  const [pendingLandlords, setPendingLandlords] = useState([]);
+  const [pendingProperties, setPendingProperties] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
 
@@ -23,111 +28,71 @@ function AdminDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [statsData, usersData, propertiesData] = await Promise.all([
+      const [statsData, pendingLData, pendingPData, usersData] = await Promise.all([
         api.getAdminStats(),
-        api.getAdminUsers(),
-        api.getAdminProperties()
+        api.getPendingLandlords(),
+        api.getPendingProperties(),
+        api.getAdminUsers()
       ]);
       setStats(statsData);
-      setUsers(usersData);
-      setProperties(propertiesData);
+      setPendingLandlords(pendingLData);
+      setPendingProperties(pendingPData);
+      setAllUsers(usersData);
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Error fetching admin data:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUpdateRole = async (userId, newRole) => {
+  const handleApproveLandlord = async (id) => {
     try {
-      await api.updateUserRole(userId, newRole);
+      await api.approveLandlord(id);
       fetchData();
-    } catch {
-      alert("Failed to update role");
+    } catch (error) {
+      alert("Failed to approve landlord: " + error.message);
     }
   };
 
-  const handleBanUser = async (userId, ban) => {
-    if (!window.confirm(`Are you sure you want to ${ban ? "ban" : "unban"} this user?`)) {
-      return;
-    }
+  const handleRejectLandlord = async (id) => {
+    const reason = prompt("Enter rejection reason (optional):");
+    if (reason === null) return;
     try {
-      await api.banUser(userId, ban);
+      await api.rejectLandlord(id, reason);
       fetchData();
-    } catch {
-      alert("Failed to update user status");
+    } catch (error) {
+      alert("Failed to reject landlord: " + error.message);
     }
   };
 
-  const handleApproveLandlord = async (userId) => {
+  const handleApproveProperty = async (id) => {
     try {
-      await api.approveLandlord(userId);
+      await api.approveProperty(id);
       fetchData();
-    } catch {
-      alert("Failed to approve landlord");
+    } catch (error) {
+      alert("Failed to approve property: " + error.message);
     }
   };
 
-  const handleRejectLandlord = async (userId) => {
-    if (
-      !window.confirm(
-        "Reject this landlord application? Their account will stay disabled and they cannot post listings."
-      )
-    ) {
-      return;
-    }
+  const handleRejectProperty = async (id) => {
+    const reason = prompt("Enter rejection reason (optional):");
+    if (reason === null) return;
     try {
-      await api.updateAdminUser(userId, { role: "landlord", status: "disabled" });
+      await api.rejectProperty(id, reason);
       fetchData();
-    } catch {
-      alert("Failed to reject application");
+    } catch (error) {
+      alert("Failed to reject property: " + error.message);
     }
   };
 
-  const handleDeleteUser = async (userId) => {
-    if (!window.confirm("Are you sure? This will delete the user and all their properties.")) {
-      return;
-    }
+  const handleDeleteUser = async (id) => {
+    if (!window.confirm("Are you sure? This will delete the user and all their data.")) return;
     try {
-      await api.deleteUser(userId);
+      await api.deleteUser(id);
       fetchData();
-    } catch {
-      alert("Failed to delete user");
+    } catch (error) {
+      alert("Failed to delete user: " + error.message);
     }
-  };
-
-  const handleApproveProperty = async (propertyId, approved) => {
-    try {
-      await api.approveProperty(propertyId, approved);
-      fetchData();
-    } catch {
-      alert("Failed to update property");
-    }
-  };
-
-  const handleDeleteProperty = async (propertyId) => {
-    if (!window.confirm("Are you sure you want to delete this property?")) {
-      return;
-    }
-    try {
-      await api.deletePropertyAdmin(propertyId);
-      fetchData();
-    } catch {
-      alert("Failed to delete property");
-    }
-  };
-
-  const getStatusBadge = (user) => {
-    if (user.is_banned) {
-      return <span className="badge bg-danger">Banned</span>;
-    }
-    if (user.status === "pending") {
-      return <span className="badge bg-warning">Pending</span>;
-    }
-    if (user.status === "disabled") {
-      return <span className="badge bg-secondary">Disabled</span>;
-    }
-    return <span className="badge bg-success">Active</span>;
   };
 
   if (loading) {
@@ -139,245 +104,331 @@ function AdminDashboard() {
   }
 
   return (
-    <div className="fade-in">
+    <div className="fade-in bg-light min-h-screen">
       {/* Header */}
-      <section className="bg-dark text-white py-4 mb-4">
+      <section className="bg-dark text-white py-4 mb-4 shadow-sm">
         <div className="container">
           <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <h1 className="display-6 fw-bold mb-1">Admin Dashboard</h1>
-              <p className="mb-0 opacity-75">System overview and management</p>
+            <div className="d-flex align-items-center gap-3">
+              <div className="bg-primary p-2 rounded-3">
+                <ShieldCheck size={32} />
+              </div>
+              <div>
+                <h1 className="h3 fw-bold mb-0">Admin Control Center</h1>
+                <p className="mb-0 text-white-50 small">System-wide management & verification</p>
+              </div>
             </div>
-            <div>
-              <Link to="/landlord" className="btn btn-outline-light me-2">
-                Landlord Dashboard
+            <div className="d-flex gap-2">
+              <Link to="/landlord" className="btn btn-outline-light btn-sm">
+                Landlord View
               </Link>
-              <Link to="/" className="btn btn-light">
-                Back to Home
+              <Link to="/" className="btn btn-primary btn-sm">
+                Main Site
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Stats */}
+      {/* Stats Overview */}
       <section className="container mb-4">
         <div className="row g-3">
           <div className="col-md-3">
-            <div className="card dashboard-card p-3 text-center">
-              <h3 className="fw-bold text-primary mb-1">{stats?.totalUsers || 0}</h3>
-              <p className="text-muted mb-0">Total Users</p>
+            <div className="card border-0 shadow-sm p-3 h-100">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <p className="text-muted small fw-bold mb-1 uppercase">Total Users</p>
+                  <h3 className="fw-bold mb-0">{stats?.totalUsers || 0}</h3>
+                </div>
+                <div className="bg-primary-subtle p-2 rounded-2 text-primary">
+                  <Users size={20} />
+                </div>
+              </div>
             </div>
           </div>
           <div className="col-md-3">
-            <div className="card dashboard-card p-3 text-center">
-              <h3 className="fw-bold text-success mb-1">{stats?.totalProperties || 0}</h3>
-              <p className="text-muted mb-0">Total Properties</p>
+            <div className="card border-0 shadow-sm p-3 h-100">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <p className="text-muted small fw-bold mb-1 uppercase">Total Properties</p>
+                  <h3 className="fw-bold mb-0">{stats?.totalProperties || 0}</h3>
+                </div>
+                <div className="bg-success-subtle p-2 rounded-2 text-success">
+                  <Building2 size={20} />
+                </div>
+              </div>
             </div>
           </div>
           <div className="col-md-3">
-            <div className="card dashboard-card p-3 text-center">
-              <h3 className="fw-bold text-warning mb-1">{stats?.pendingProperties || 0}</h3>
-              <p className="text-muted mb-0">Pending Approval</p>
+            <div className="card border-0 shadow-sm p-3 h-100">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <p className="text-muted small fw-bold mb-1 uppercase">Pending Approval</p>
+                  <h3 className="fw-bold mb-0">{stats?.pendingProperties || 0}</h3>
+                </div>
+                <div className="bg-warning-subtle p-2 rounded-2 text-warning">
+                  <Clock size={20} />
+                </div>
+              </div>
             </div>
           </div>
           <div className="col-md-3">
-            <div className="card dashboard-card p-3 text-center">
-              <h3 className="fw-bold text-info mb-1">{stats?.pendingLandlords || 0}</h3>
-              <p className="text-muted mb-0">Pending Landlords</p>
+            <div className="card border-0 shadow-sm p-3 h-100">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <p className="text-muted small fw-bold mb-1 uppercase">Pending Landlords</p>
+                  <h3 className="fw-bold mb-0">{stats?.pendingLandlords || 0}</h3>
+                </div>
+                <div className="bg-info-subtle p-2 rounded-2 text-info">
+                  <ShieldAlert size={20} />
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Tabs */}
-      <section className="container">
-        <ul className="nav nav-tabs mb-4">
-          <li className="nav-item">
-            <button
-              className={`nav-link ${activeTab === "overview" ? "active" : ""}`}
-              onClick={() => setActiveTab("overview")}
-            >
-              Overview
-            </button>
-          </li>
-          <li className="nav-item">
-            <button
-              className={`nav-link ${activeTab === "users" ? "active" : ""}`}
-              onClick={() => setActiveTab("users")}
-            >
-              Users ({users.length})
-            </button>
-          </li>
-          <li className="nav-item">
-            <button
-              className={`nav-link ${activeTab === "properties" ? "active" : ""}`}
-              onClick={() => setActiveTab("properties")}
-            >
-              Properties ({properties.length})
-            </button>
-          </li>
-        </ul>
-
-        {/* Users Tab */}
-        {activeTab === "users" && (
-          <div className="table-responsive">
-            <table className="table table-hover">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <tr key={user.id}>
-                    <td>
-                      <strong>{user.name}</strong>
-                    </td>
-                    <td>{user.email}</td>
-                    <td>
-                      <select
-                        className="form-select form-select-sm"
-                        value={user.role}
-                        onChange={(e) => handleUpdateRole(user.id, e.target.value)}
-                        disabled={user.role === "admin"}
-                        style={{ width: "auto" }}
-                      >
-                        <option value="student">Student</option>
-                        <option value="landlord">Landlord</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    </td>
-                    <td>{getStatusBadge(user)}</td>
-                    <td>
-                      <div className="d-flex gap-2">
-                        {user.role !== "admin" && (
-                          <>
-                            {user.role === "landlord" && user.status === "pending" && (
-                              <>
-                                <button
-                                  className="btn btn-sm btn-success"
-                                  onClick={() => handleApproveLandlord(user.id)}
-                                >
-                                  Approve
-                                </button>
-                                <button
-                                  className="btn btn-sm btn-outline-secondary"
-                                  onClick={() => handleRejectLandlord(user.id)}
-                                >
-                                  Reject
-                                </button>
-                              </>
-                            )}
-                            <button
-                              className={`btn btn-sm ${
-                                user.is_banned ? "btn-outline-success" : "btn-outline-danger"
-                              }`}
-                              onClick={() => handleBanUser(user.id, !user.is_banned)}
-                            >
-                              {user.is_banned ? "Unban" : "Ban"}
-                            </button>
-                            <button
-                              className="btn btn-sm btn-outline-dark"
-                              onClick={() => handleDeleteUser(user.id)}
-                            >
-                              Delete
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* Main Content Area */}
+      <section className="container pb-5">
+        <div className="card border-0 shadow-sm overflow-hidden">
+          <div className="card-header bg-white border-0 p-0">
+            <ul className="nav nav-tabs px-4 pt-3">
+              <li className="nav-item">
+                <button 
+                  className={`nav-link border-0 px-4 py-3 fw-semibold ${activeTab === "overview" ? "active text-primary border-bottom border-primary border-3" : "text-muted"}`}
+                  onClick={() => setActiveTab("overview")}
+                >
+                  <BarChart3 size={18} className="me-2" /> Overview
+                </button>
+              </li>
+              <li className="nav-item">
+                <button 
+                  className={`nav-link border-0 px-4 py-3 fw-semibold ${activeTab === "landlords" ? "active text-primary border-bottom border-primary border-3" : "text-muted"}`}
+                  onClick={() => setActiveTab("landlords")}
+                >
+                  <ShieldAlert size={18} className="me-2" /> Landlord Queue ({pendingLandlords.length})
+                </button>
+              </li>
+              <li className="nav-item">
+                <button 
+                  className={`nav-link border-0 px-4 py-3 fw-semibold ${activeTab === "properties" ? "active text-primary border-bottom border-primary border-3" : "text-muted"}`}
+                  onClick={() => setActiveTab("properties")}
+                >
+                  <Clock size={18} className="me-2" /> Property Queue ({pendingProperties.length})
+                </button>
+              </li>
+              <li className="nav-item">
+                <button 
+                  className={`nav-link border-0 px-4 py-3 fw-semibold ${activeTab === "users" ? "active text-primary border-bottom border-primary border-3" : "text-muted"}`}
+                  onClick={() => setActiveTab("users")}
+                >
+                  <Users size={18} className="me-2" /> User Management
+                </button>
+              </li>
+            </ul>
           </div>
-        )}
 
-        {/* Properties Tab */}
-        {activeTab === "properties" && (
-          <div className="table-responsive">
-            <table className="table table-hover">
-              <thead>
-                <tr>
-                  <th>Property</th>
-                  <th>Landlord</th>
-                  <th>Location</th>
-                  <th>Price</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {properties.map((property) => (
-                  <tr key={property.id}>
-                    <td>
-                      <strong>{property.name}</strong>
-                    </td>
-                    <td>{property.landlord?.name || "Unknown"}</td>
-                    <td>{property.location}</td>
-                    <td>K{Number(property.price).toLocaleString()}</td>
-                    <td>
-                      <span className={`badge ${
-                        property.approved ? "bg-success" : "bg-warning"
-                      }`}>
-                        {property.approved ? "Approved" : "Pending"}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="d-flex gap-2">
-                        {!property.approved && (
-                          <button
-                            className="btn btn-sm btn-success"
-                            onClick={() => handleApproveProperty(property.id, true)}
-                          >
-                            Approve
-                          </button>
-                        )}
-                        <button
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => handleDeleteProperty(property.id)}
-                        >
-                          Delete
-                        </button>
+          <div className="card-body p-4">
+            {/* Overview Tab */}
+            {activeTab === "overview" && (
+              <div className="row g-4">
+                <div className="col-md-6">
+                  <h5 className="fw-bold mb-3">User Distribution</h5>
+                  <div className="list-group list-group-flush border rounded-3">
+                    {stats?.usersByRole?.map((item) => (
+                      <div key={item.role} className="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <span className="text-capitalize fw-semibold">{item.role}s</span>
+                        <span className="badge bg-primary rounded-pill">{item.count}</span>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Overview Tab */}
-        {activeTab === "overview" && (
-          <div className="row g-4">
-            <div className="col-md-6">
-              <div className="card dashboard-card p-4">
-                <h5 className="fw-bold mb-3">Users by Role</h5>
-                {stats?.usersByRole?.map((item) => (
-                  <div key={item.role} className="d-flex justify-content-between mb-2">
-                    <span className="text-capitalize">{item.role}</span>
-                    <span className="badge bg-primary">{item.count}</span>
+                    ))}
                   </div>
-                ))}
+                </div>
+                <div className="col-md-6">
+                  <h5 className="fw-bold mb-3">System Health</h5>
+                  <div className="card bg-primary text-white border-0 p-4 mb-3">
+                    <h2 className="display-6 fw-bold mb-1">K{Number(stats?.averagePrice || 0).toLocaleString()}</h2>
+                    <p className="mb-0 opacity-75">Average Property Price</p>
+                  </div>
+                  <div className="card bg-success text-white border-0 p-4">
+                    <h2 className="display-6 fw-bold mb-1">{stats?.activeLandlords || 0}</h2>
+                    <p className="mb-0 opacity-75">Verified Active Landlords</p>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="col-md-6">
-              <div className="card dashboard-card p-4">
-                <h5 className="fw-bold mb-3">Average Price</h5>
-                <h2 className="text-primary">
-                  K{Number(stats?.averagePrice || 0).toLocaleString()}
-                </h2>
-                <p className="text-muted mb-0">Average property price</p>
+            )}
+
+            {/* Landlord Verification Queue */}
+            {activeTab === "landlords" && (
+              <div className="table-responsive">
+                {pendingLandlords.length === 0 ? (
+                  <div className="text-center py-5">
+                    <CheckCircle size={48} className="text-success mb-3" />
+                    <h5 className="fw-bold">No Pending Landlords</h5>
+                    <p className="text-muted">All landlord applications have been processed.</p>
+                  </div>
+                ) : (
+                  <table className="table align-middle">
+                    <thead className="table-light">
+                      <tr>
+                        <th>Landlord / Business</th>
+                        <th>Contact Info</th>
+                        <th>Documents (NRC)</th>
+                        <th>Registration Date</th>
+                        <th className="text-end">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pendingLandlords.map((l) => (
+                        <tr key={l.id}>
+                          <td>
+                            <div className="fw-bold">{l.name}</div>
+                            <div className="small text-muted">{l.business_name || "No Business Name"}</div>
+                          </td>
+                          <td>
+                            <div className="small">{l.email}</div>
+                            <div className="small">{l.phone}</div>
+                          </td>
+                          <td>
+                            <div className="d-flex gap-2">
+                              {l.nrc_front_url && (
+                                <a href={l.nrc_front_url} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-primary px-2 py-1 small">Front</a>
+                              )}
+                              {l.nrc_back_url && (
+                                <a href={l.nrc_back_url} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-primary px-2 py-1 small">Back</a>
+                              )}
+                              {!l.nrc_front_url && !l.nrc_back_url && <span className="text-danger small">No Documents</span>}
+                            </div>
+                          </td>
+                          <td className="small text-muted">
+                            {new Date(l.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="text-end">
+                            <div className="d-flex gap-2 justify-content-end">
+                              <button onClick={() => handleApproveLandlord(l.id)} className="btn btn-sm btn-success d-flex align-items-center gap-1">
+                                <CheckCircle size={14} /> Approve
+                              </button>
+                              <button onClick={() => handleRejectLandlord(l.id)} className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1">
+                                <XCircle size={14} /> Reject
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
-            </div>
+            )}
+
+            {/* Property Approval Queue */}
+            {activeTab === "properties" && (
+              <div className="table-responsive">
+                {pendingProperties.length === 0 ? (
+                  <div className="text-center py-5">
+                    <CheckCircle size={48} className="text-success mb-3" />
+                    <h5 className="fw-bold">No Pending Properties</h5>
+                    <p className="text-muted">All property listings have been reviewed.</p>
+                  </div>
+                ) : (
+                  <table className="table align-middle">
+                    <thead className="table-light">
+                      <tr>
+                        <th>Property Details</th>
+                        <th>Landlord Info</th>
+                        <th>Price & Location</th>
+                        <th>Images</th>
+                        <th className="text-end">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pendingProperties.map((p) => (
+                        <tr key={p.id}>
+                          <td>
+                            <div className="fw-bold">{p.name}</div>
+                            <div className="small text-muted">{p.room_type}</div>
+                          </td>
+                          <td>
+                            <div className="small fw-semibold">{p.landlord?.name}</div>
+                            <div className="small text-muted">{p.landlord?.business_name}</div>
+                          </td>
+                          <td>
+                            <div className="small fw-bold text-primary">K{Number(p.price).toLocaleString()}</div>
+                            <div className="small text-muted">{p.location}</div>
+                          </td>
+                          <td>
+                            <span className="badge bg-light text-dark border">{p.images?.length || 0} photos</span>
+                          </td>
+                          <td className="text-end">
+                            <div className="d-flex gap-2 justify-content-end">
+                              <Link to={`/property/${p.id}`} className="btn btn-sm btn-outline-dark">
+                                <FileText size={14} /> View
+                              </Link>
+                              <button onClick={() => handleApproveProperty(p.id)} className="btn btn-sm btn-success">
+                                Approve
+                              </button>
+                              <button onClick={() => handleRejectProperty(p.id)} className="btn btn-sm btn-outline-danger">
+                                Reject
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+
+            {/* User Management Tab */}
+            {activeTab === "users" && (
+              <div className="table-responsive">
+                <table className="table align-middle">
+                  <thead className="table-light">
+                    <tr>
+                      <th>User</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                      <th className="text-end">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allUsers.map((u) => (
+                      <tr key={u.id}>
+                        <td>
+                          <div className="fw-bold">{u.name}</div>
+                          <div className="small text-muted">{u.email}</div>
+                        </td>
+                        <td>
+                          <span className={`badge rounded-pill ${
+                            u.role === 'admin' ? 'bg-dark' : u.role === 'landlord' ? 'bg-primary' : 'bg-info'
+                          }`}>
+                            {u.role}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`badge rounded-pill ${
+                            u.status === 'active' ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'
+                          }`}>
+                            {u.status}
+                          </span>
+                        </td>
+                        <td className="text-end">
+                          <button 
+                            onClick={() => handleDeleteUser(u.id)} 
+                            className="btn btn-sm btn-outline-danger"
+                            disabled={u.role === 'admin'}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </section>
     </div>
   );

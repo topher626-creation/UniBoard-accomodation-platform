@@ -47,10 +47,10 @@ const MobileLayout = ({ children }) => {
 
   const navigationItems = [
     { path: "/", label: "Home", icon: Home },
-    { path: "/search", label: "Search", icon: Search },
+    { path: "/search", label: "Explore", icon: Search },
     ...(isAuthenticated ? [
-      { path: "/bookings", label: "Bookings", icon: MessageSquare },
-      { path: "/profile", label: "Profile", icon: User },
+      { path: user.role === 'landlord' || user.role === 'admin' ? "/landlord" : "/profile", label: "Dashboard", icon: User },
+      { path: "/profile", label: "Settings", icon: Settings },
     ] : [
       { path: "/login", label: "Login", icon: User },
     ])

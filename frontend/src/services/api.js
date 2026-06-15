@@ -104,41 +104,9 @@ class ApiService {
     return this.request("/properties/mine");
   }
 
-  // Bookings
-  async getMyBookings(status) {
-    const query = status ? `?status=${status}` : "";
-    return this.request(`/bookings/my-bookings${query}`);
-  }
-
-  async createBooking(data) {
-    return this.request("/bookings", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  }
-
-  async cancelBooking(id) {
-    return this.request(`/bookings/${id}/cancel`, {
-      method: "PATCH",
-    });
-  }
-
-  async getLandlordBookings(status) {
-    const query = status ? `?status=${status}` : "";
-    return this.request(`/bookings/landlord/bookings${query}`);
-  }
-
-  async confirmBooking(id) {
-    return this.request(`/bookings/${id}/confirm`, {
-      method: "PATCH",
-    });
-  }
-
-  async rejectBooking(id, reason) {
-    return this.request(`/bookings/${id}/reject`, {
-      method: "PATCH",
-      body: JSON.stringify({ rejection_reason: reason }),
-    });
+  // Bookings (Future implementation - placeholder)
+  async getMyBookings() {
+    return [];
   }
 
   // Favorites
@@ -175,43 +143,36 @@ class ApiService {
     });
   }
 
-  async changePassword(currentPassword, newPassword) {
-    return this.request("/users/password", {
-      method: "PUT",
-      body: JSON.stringify({
-        current_password: currentPassword,
-        new_password: newPassword,
-      }),
-    });
-  }
-
   // Admin
   async getAdminStats() {
     return this.request("/admin/stats");
   }
 
-  async getAdminUsers() {
-    return this.request("/admin/users");
+  async getAdminUsers(role, status) {
+    let query = "";
+    if (role || status) {
+      const params = new URLSearchParams();
+      if (role) params.append("role", role);
+      if (status) params.append("status", status);
+      query = `?${params.toString()}`;
+    }
+    return this.request(`/admin/users${query}`);
   }
 
-  async updateUserRole(id, role) {
-    return this.request(`/admin/users/${id}`, {
-      method: "PUT",
-      body: JSON.stringify({ role }),
-    });
-  }
-
-  /** Update admin-managed user fields (role and/or status). */
-  async updateAdminUser(id, body) {
-    return this.request(`/admin/users/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(body),
-    });
+  async getPendingLandlords() {
+    return this.request("/admin/landlords/pending");
   }
 
   async approveLandlord(id) {
     return this.request(`/admin/users/${id}/approve-landlord`, {
       method: "PATCH",
+    });
+  }
+
+  async rejectLandlord(id, reason) {
+    return this.request(`/admin/users/${id}/reject-landlord`, {
+      method: "PATCH",
+      body: JSON.stringify({ reason }),
     });
   }
 
@@ -228,55 +189,42 @@ class ApiService {
     });
   }
 
-  async getAdminProperties() {
-    return this.request("/admin/properties");
+  async getAdminProperties(approved) {
+    const query = approved !== undefined ? `?approved=${approved}` : "";
+    return this.request(`/admin/properties${query}`);
   }
 
-  async approveProperty(id, approved) {
-    return this.request(`/admin/properties/${id}`, {
-      method: "PUT",
-      body: JSON.stringify({ approved }),
+  async getPendingProperties() {
+    return this.request("/admin/properties/pending");
+  }
+
+  async approveProperty(id) {
+    return this.request(`/admin/properties/${id}/approve`, {
+      method: "PATCH",
     });
   }
 
-  async deletePropertyAdmin(id) {
-    return this.request(`/admin/properties/${id}`, {
-      method: "DELETE",
+  async rejectProperty(id, reason) {
+    return this.request(`/admin/properties/${id}/reject`, {
+      method: "PATCH",
+      body: JSON.stringify({ reason }),
+    });
+  }
+
+  async updateOccupancy(id, action) {
+    return this.request(`/admin/properties/${id}/occupancy`, {
+      method: "PATCH",
+      body: JSON.stringify({ action }),
     });
   }
 
   // Reviews
   async getPropertyReviews(propertyId) {
-    return this.request(`/reviews/listing/${propertyId}`);
+    return this.request(`/reviews/property/${propertyId}`);
   }
 
   async createReview(data) {
     return this.request("/reviews", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  }
-
-  // Compounds
-  async getCompounds() {
-    return this.request("/compounds");
-  }
-
-  async createCompound(data) {
-    return this.request("/compounds", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  }
-
-  // Buildings
-  async getBuildings(compoundId) {
-    const query = compoundId ? `?compound_id=${compoundId}` : "";
-    return this.request(`/buildings${query}`);
-  }
-
-  async createBuilding(data) {
-    return this.request("/buildings", {
       method: "POST",
       body: JSON.stringify(data),
     });

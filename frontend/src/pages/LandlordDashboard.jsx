@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AlertTriangle, Building2, Plus, ClipboardList, MapPin, MoreVertical } from "lucide-react";
+import { Building2, Plus, MapPin, MoreVertical, ShieldCheck, ShieldAlert, Users, Bed } from "lucide-react";
 import { useAuthStore } from "../stores/authStore";
 import { api } from "../services/api";
 
@@ -8,11 +8,7 @@ function LandlordDashboard() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const [properties, setProperties] = useState([]);
-  const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("properties");
-
-  const MAX_LISTINGS = 3;
 
   useEffect(() => {
     if (!user || (user.role !== "landlord" && user.role !== "admin")) {
@@ -25,14 +21,10 @@ function LandlordDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [propsData, bookingsData] = await Promise.all([
-        api.getMyProperties(),
-        api.getLandlordBookings()
-      ]);
+      const propsData = await api.getMyProperties();
       setProperties(propsData);
-      setBookings(bookingsData);
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Error fetching properties:", error);
     } finally {
       setLoading(false);
     }
@@ -49,29 +41,9 @@ function LandlordDashboard() {
     }
   };
 
-  const handleConfirmBooking = async (id) => {
-    try {
-      await api.confirmBooking(id);
-      fetchData();
-    } catch {
-      alert("Failed to confirm booking");
-    }
-  };
-
-  const handleRejectBooking = async (id) => {
-    const reason = prompt("Enter rejection reason:");
-    if (reason === null) return;
-    
-    try {
-      await api.rejectBooking(id, reason);
-      fetchData();
-    } catch {
-      alert("Failed to reject booking");
-    }
-  };
-
-  const pendingBookings = bookings.filter(b => b.status === "pending");
-  const confirmedBookings = bookings.filter(b => b.status === "confirmed");
+  const totalBedspaces = properties.reduce((sum, p) => sum + (p.total_bedspaces || 0), 0);
+  const occupiedBedspaces = properties.reduce((sum, p) => sum + (p.occupied_bedspaces || 0), 0);
+  const availableBedspaces = totalBedspaces - occupiedBedspaces;
 
   if (loading) {
     return (
@@ -88,271 +60,200 @@ function LandlordDashboard() {
         <div className="container">
           <div className="d-flex justify-content-between align-items-center">
             <div>
-<h1 className="display-6 fw-bold mb-1">Landlord Dashboard</h1>
-              <p className="mb-0 opacity-75">Welcome back, {user?.business_name || user?.name}</p>
+              <h1 className="display-6 fw-bold mb-1">Landlord Dashboard</h1>
+              <p className="mb-0 opacity-75">
+                {user?.business_name ? `${user.business_name} | ` : ""}
+                Welcome back, {user?.name}
+              </p>
             </div>
-            <div>
+            <div className="d-flex gap-2">
               {user?.role === "admin" && (
-                <Link to="/admin" className="btn btn-light me-2">
+                <Link to="/admin" className="btn btn-light">
                   Admin Panel
                 </Link>
               )}
-              <Link to="/create-listing" className="btn btn-light">
-                + New Listing
+              <Link to="/create-listing" className={`btn btn-light ${user?.status !== "active" && user?.role !== "admin" ? "disabled" : ""}`}>
+                + New Property
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {user?.role === "landlord" && user?.status === "pending" && (
+      {/* Verification Status Banner */}
+      {user?.role === "landlord" && (
         <section className="container mb-4">
-          <div className="alert alert-warning">
-            Your landlord account is waiting for admin approval. You can review your dashboard, but listing creation stays locked until approval.
-          </div>
+          {user?.status === "pending" ? (
+            <div className="alert alert-warning d-flex align-items-center gap-3">
+              <ShieldAlert size={24} className="text-warning" />
+              <div>
+                <h5 className="alert-heading mb-1 fw-bold">Account Verification Pending</h5>
+                <p className="mb-0">Your landlord account is currently being reviewed by our admin team. You will be notified once your account is verified. Property creation is currently locked.</p>
+              </div>
+            </div>
+          ) : user?.status === "active" ? (
+            <div className="alert alert-success d-flex align-items-center gap-3">
+              <ShieldCheck size={24} className="text-success" />
+              <div>
+                <h5 className="alert-heading mb-1 fw-bold">Verified Landlord</h5>
+                <p className="mb-0">Your account is fully verified. You can now create and manage your property listings.</p>
+              </div>
+            </div>
+          ) : null}
         </section>
       )}
 
-      {/* Stats */}
+      {/* Stats Overview */}
       <section className="container mb-4">
         <div className="row g-3">
-          <div className="col-md-4">
-            <div className="card dashboard-card p-3 text-center">
-              <h3 className="fw-bold text-primary mb-1">{properties.length}</h3>
-              <p className="text-muted mb-0">Total Properties</p>
+          <div className="col-md-3">
+            <div className="card dashboard-card p-3 text-center border-0 shadow-sm">
+              <div className="d-flex align-items-center justify-content-center mb-2">
+                <Building2 size={24} className="text-primary me-2" />
+                <h3 className="fw-bold text-primary mb-0">{properties.length}</h3>
+              </div>
+              <p className="text-muted mb-0 small uppercase fw-semibold tracking-wider">Total Properties</p>
             </div>
           </div>
-          <div className="col-md-4">
-            <div className="card dashboard-card p-3 text-center">
-              <h3 className="fw-bold text-warning mb-1">{pendingBookings.length}</h3>
-              <p className="text-muted mb-0">Pending Bookings</p>
+          <div className="col-md-3">
+            <div className="card dashboard-card p-3 text-center border-0 shadow-sm">
+              <div className="d-flex align-items-center justify-content-center mb-2">
+                <Users size={24} className="text-info me-2" />
+                <h3 className="fw-bold text-info mb-0">{totalBedspaces}</h3>
+              </div>
+              <p className="text-muted mb-0 small uppercase fw-semibold tracking-wider">Total Bedspaces</p>
             </div>
           </div>
-          <div className="col-md-4">
-            <div className="card dashboard-card p-3 text-center">
-              <h3 className="fw-bold text-success mb-1">{confirmedBookings.length}</h3>
-              <p className="text-muted mb-0">Confirmed Bookings</p>
+          <div className="col-md-3">
+            <div className="card dashboard-card p-3 text-center border-0 shadow-sm">
+              <div className="d-flex align-items-center justify-content-center mb-2">
+                <Bed size={24} className="text-success me-2" />
+                <h3 className="fw-bold text-success mb-0">{occupiedBedspaces}</h3>
+              </div>
+              <p className="text-muted mb-0 small uppercase fw-semibold tracking-wider">Occupied Bedspaces</p>
+            </div>
+          </div>
+          <div className="col-md-3">
+            <div className="card dashboard-card p-3 text-center border-0 shadow-sm">
+              <div className="d-flex align-items-center justify-content-center mb-2">
+                <Plus size={24} className="text-warning me-2" />
+                <h3 className="fw-bold text-warning mb-0">{availableBedspaces}</h3>
+              </div>
+              <p className="text-muted mb-0 small uppercase fw-semibold tracking-wider">Available Bedspaces</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Property Limit Warning */}
-      {properties.length >= MAX_LISTINGS && (
-        <section className="container mb-4">
-          <div className="alert alert-warning d-flex align-items-center">
-            <AlertTriangle size={22} className="me-3 flex-shrink-0" aria-hidden />
-            <div>
-              <strong>Maximum {MAX_LISTINGS} listings reached.</strong>
-              {" "}Remove one property to add another.
-            </div>
+      {/* Properties Section */}
+      <section className="container mb-5">
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <h2 className="h4 fw-bold mb-0">My Properties</h2>
+          <div className="text-muted small">
+            Showing {properties.length} listings
           </div>
-        </section>
-      )}
+        </div>
 
-      {/* Tabs */}
-      <section className="container">
-        <ul className="nav nav-tabs mb-4">
-          <li className="nav-item">
-            <button
-              className={`nav-link ${activeTab === "properties" ? "active" : ""}`}
-              onClick={() => setActiveTab("properties")}
+        {properties.length === 0 ? (
+          <div className="text-center py-5 bg-white rounded-3 shadow-sm border">
+            <div className="d-inline-flex align-items-center justify-content-center rounded-circle bg-light text-primary mb-3" style={{ width: 80, height: 80 }}>
+              <Building2 size={40} aria-hidden />
+            </div>
+            <h4 className="fw-bold">No properties listed yet</h4>
+            <p className="text-muted mb-4 mx-auto" style={{ maxWidth: "400px" }}>
+              Ready to start hosting students? Create your first property listing to get started.
+            </p>
+            <Link 
+              to="/create-listing" 
+              className={`btn btn-primary px-4 ${user?.status !== "active" && user?.role !== "admin" ? "disabled" : ""}`}
             >
-              My Properties ({properties.length}/{MAX_LISTINGS})
-            </button>
-          </li>
-          <li className="nav-item">
-            <button
-              className={`nav-link ${activeTab === "bookings" ? "active" : ""}`}
-              onClick={() => setActiveTab("bookings")}
-            >
-              Bookings ({bookings.length})
-            </button>
-          </li>
-        </ul>
-
-        {/* Properties Tab */}
-        {activeTab === "properties" && (
-          <div>
-            {properties.length === 0 ? (
-              <div className="text-center py-5">
-                <div className="d-inline-flex align-items-center justify-content-center rounded-circle bg-light text-primary mb-2" style={{ width: 72, height: 72 }}>
-                  <Building2 size={36} aria-hidden />
-                </div>
-                <h4 className="mt-3">No properties yet</h4>
-                <p className="text-muted mb-3">
-                  Start by creating your first listing
-                </p>
-                <Link to="/create-listing" className="btn btn-primary">
-                  Create Listing
-                </Link>
-              </div>
-            ) : (
-              <div className="row g-3">
-                {properties.map((property) => (
-                  <div key={property.id} className="col-md-6 col-lg-4">
-                    <div className="card dashboard-card h-100">
-                      <div className="card-body">
-                        <div className="d-flex justify-content-between align-items-start mb-2">
-                          <span className={`badge ${
-                            property.approved ? "bg-success" : "bg-warning"
-                          }`}>
-                            {property.approved ? "Approved" : "Pending"}
-                          </span>
-                          <div className="dropdown">
+              + Create First Listing
+            </Link>
+          </div>
+        ) : (
+          <div className="row g-4">
+            {properties.map((property) => (
+              <div key={property.id} className="col-md-6 col-lg-4">
+                <div className="card dashboard-card h-100 border-0 shadow-sm overflow-hidden">
+                  <div className="card-body p-4">
+                    <div className="d-flex justify-content-between align-items-start mb-3">
+                      <span className={`badge px-3 py-2 rounded-pill ${
+                        property.approved ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning"
+                      }`}>
+                        {property.approved ? "Approved" : "Awaiting Approval"}
+                      </span>
+                      <div className="dropdown">
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-light rounded-circle p-2"
+                          data-bs-toggle="dropdown"
+                          aria-label="Property actions"
+                        >
+                          <MoreVertical size={18} />
+                        </button>
+                        <ul className="dropdown-menu dropdown-menu-end shadow border-0">
+                          <li>
+                            <Link to={`/property/${property.id}`} className="dropdown-item py-2">
+                              View Details
+                            </Link>
+                          </li>
+                          <li>
+                            <Link to={`/edit-property/${property.id}`} className="dropdown-item py-2">
+                              Edit Property
+                            </Link>
+                          </li>
+                          <li><hr className="dropdown-divider" /></li>
+                          <li>
                             <button
-                              type="button"
-                              className="btn btn-sm btn-link text-muted p-1"
-                              data-bs-toggle="dropdown"
-                              aria-label="Property actions"
+                              className="dropdown-item text-danger py-2"
+                              onClick={() => handleDeleteProperty(property.id)}
                             >
-                              <MoreVertical size={18} />
+                              Delete Property
                             </button>
-                            <ul className="dropdown-menu dropdown-menu-end">
-                              <li>
-                                <Link
-                                  to={`/property/${property.id}`}
-                                  className="dropdown-item"
-                                >
-                                  View
-                                </Link>
-                              </li>
-                              <li>
-                                <hr className="dropdown-divider" />
-                              </li>
-                              <li>
-                                <button
-                                  className="dropdown-item text-danger"
-                                  onClick={() => handleDeleteProperty(property.id)}
-                                >
-                                  Delete
-                                </button>
-                              </li>
-                            </ul>
-                          </div>
-                        </div>
-                        
-                        <h5 className="card-title fw-bold">{property.name}</h5>
-                        <p className="text-muted small mb-2 d-flex align-items-start gap-1">
-                          <MapPin size={14} className="flex-shrink-0 mt-1" aria-hidden />
-                          <span>{property.location || property.compound || "Location"}</span>
-                        </p>
-                        
-                        <div className="d-flex justify-content-between align-items-center">
-                          <span className="fw-bold text-primary">
-                            K{Number(property.price).toLocaleString()}/mo
-                          </span>
-                          <span className="text-muted small">
-                            {property.available_beds} beds available
-                          </span>
-                        </div>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                    
+                    <h5 className="card-title fw-bold mb-2">{property.name}</h5>
+                    <p className="text-muted small mb-3 d-flex align-items-start gap-2">
+                      <MapPin size={16} className="text-primary flex-shrink-0" aria-hidden />
+                      <span>{property.location}</span>
+                    </p>
+                    
+                    <div className="border-top pt-3 mt-3 d-flex justify-content-between align-items-center">
+                      <div>
+                        <p className="text-muted small mb-0">Monthly Rent</p>
+                        <span className="fw-bold text-primary h5 mb-0">
+                          K{Number(property.price).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="text-end">
+                        <p className="text-muted small mb-0">Availability</p>
+                        <span className={`fw-semibold ${property.available_bedspaces > 0 ? "text-success" : "text-danger"}`}>
+                          {property.available_bedspaces} / {property.total_bedspaces} free
+                        </span>
                       </div>
                     </div>
                   </div>
-                ))}
-                
-                {/* Add New Card */}
-                {properties.length < MAX_LISTINGS && (
-                  <div className="col-md-6 col-lg-4">
-                    <Link
-                      to={user?.status === "active" || user?.role === "admin" ? "/create-listing" : "#"}
-                      className="text-decoration-none"
-                      onClick={(event) => {
-                        if (user?.role === "landlord" && user?.status !== "active") {
-                          event.preventDefault();
-                        }
-                      }}
-                    >
-                      <div
-                        className="card dashboard-card h-100 d-flex align-items-center justify-content-center"
-                        style={{ minHeight: "180px", borderStyle: "dashed" }}
-                      >
-                        <div className="text-center text-muted d-flex flex-column align-items-center gap-2">
-                          <Plus size={32} aria-hidden />
-                          <p className="mb-0">Add new property</p>
-                        </div>
-                      </div>
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Bookings Tab */}
-        {activeTab === "bookings" && (
-          <div>
-            {bookings.length === 0 ? (
-              <div className="text-center py-5">
-                <div className="d-inline-flex align-items-center justify-content-center rounded-circle bg-light text-primary mb-2" style={{ width: 72, height: 72 }}>
-                  <ClipboardList size={36} aria-hidden />
                 </div>
-                <h4 className="mt-3">No bookings yet</h4>
-                <p className="text-muted">
-                  Bookings from students will appear here
-                </p>
               </div>
-            ) : (
-              <div className="table-responsive">
-                <table className="table table-hover">
-                  <thead>
-                    <tr>
-                      <th>Student</th>
-                      <th>Property</th>
-                      <th>Move-in Date</th>
-                      <th>Duration</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bookings.map((booking) => (
-                      <tr key={booking.id}>
-                        <td>
-                          <div>
-                            <strong>{booking.user?.name || "Student"}</strong>
-                            <br />
-                            <small className="text-muted">
-                              {booking.user?.email}
-                            </small>
-                          </div>
-                        </td>
-                        <td>{booking.property?.name}</td>
-                        <td>{booking.move_in_date || "-"}</td>
-                        <td>{booking.duration_months || 1} month(s)</td>
-                        <td>
-                          <span className={`badge ${
-                            booking.status === "confirmed" ? "bg-success" :
-                            booking.status === "pending" ? "bg-warning" :
-                            booking.status === "rejected" ? "bg-danger" :
-                            "bg-secondary"
-                          }`}>
-                            {booking.status}
-                          </span>
-                        </td>
-                        <td>
-                          {booking.status === "pending" && (
-                            <div className="d-flex gap-2">
-                              <button
-                                className="btn btn-sm btn-success"
-                                onClick={() => handleConfirmBooking(booking.id)}
-                              >
-                                Confirm
-                              </button>
-                              <button
-                                className="btn btn-sm btn-outline-danger"
-                                onClick={() => handleRejectBooking(booking.id)}
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            ))}
+            
+            {/* Quick Add Card */}
+            {(user?.status === "active" || user?.role === "admin") && (
+              <div className="col-md-6 col-lg-4">
+                <Link to="/create-listing" className="text-decoration-none h-100 d-block">
+                  <div className="card dashboard-card h-100 d-flex align-items-center justify-content-center border-2 border-dashed border-primary-subtle bg-primary-subtle bg-opacity-10" style={{ minHeight: "220px" }}>
+                    <div className="text-center text-primary p-4">
+                      <div className="bg-primary text-white rounded-circle d-inline-flex p-3 mb-3">
+                        <Plus size={32} />
+                      </div>
+                      <h5 className="fw-bold mb-1">Add New Property</h5>
+                      <p className="small mb-0 opacity-75">Expand your student housing portfolio</p>
+                    </div>
+                  </div>
+                </Link>
               </div>
             )}
           </div>
