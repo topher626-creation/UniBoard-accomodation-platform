@@ -61,6 +61,7 @@ const startServer = async () => {
     // Load models and routes after DB connection so fallback dialect selection is respected.
     require("./models");
 
+    app.get("/api/health", (req, res) => res.json({ status: "ok" }));
     app.use("/api/test", require("./routes/test"));
     app.use("/api/auth/login", authLimiter);
     app.use("/api/auth/register", authLimiter);
@@ -93,7 +94,7 @@ const startServer = async () => {
       console.log(`Server running on port ${PORT}`);
     });
   } catch (error) {
-    console.error("Server startup aborted due to database connection failure.");
+    console.error("Server startup aborted due to error:", error);
     process.exit(1);
   }
 };

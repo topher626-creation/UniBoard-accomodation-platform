@@ -11,15 +11,15 @@ const Review = sequelize.define('Review', {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'users',
+      model: 'Users',
       key: 'id'
     }
   },
-  listing_id: {
+  property_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'listings',
+      model: 'Properties',
       key: 'id'
     }
   },
@@ -50,7 +50,7 @@ const Review = sequelize.define('Review', {
   indexes: [
     {
       unique: true,
-      fields: ['user_id', 'listing_id']
+      fields: ['user_id', 'property_id']
     }
   ]
 });

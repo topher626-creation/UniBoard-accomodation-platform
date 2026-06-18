@@ -11,7 +11,7 @@ const PropertyImage = sequelize.define('PropertyImage', {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'properties',
+      model: 'Properties',
       key: 'id'
     }
   },

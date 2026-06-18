@@ -11,7 +11,7 @@ const Booking = sequelize.define('Booking', {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'users',
+      model: 'Users',
       key: 'id'
     }
   },
@@ -19,7 +19,7 @@ const Booking = sequelize.define('Booking', {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'properties',
+      model: 'Properties',
       key: 'id'
     }
   },

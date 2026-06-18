@@ -11,7 +11,7 @@ const PropertyFeature = sequelize.define('PropertyFeature', {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'properties',
+      model: 'Properties',
       key: 'id'
     }
   },
