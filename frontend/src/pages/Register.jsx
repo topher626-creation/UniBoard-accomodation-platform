@@ -1,18 +1,14 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
   Eye, EyeOff, Mail, Lock, User, Phone, Upload, 
   Building2, IdCard, GraduationCap, AlertTriangle, 
-  CheckCircle, ArrowRight, ArrowLeft, Briefcase, 
-  School, Users
+  CheckCircle, Briefcase, School, ArrowRight
 } from "lucide-react";
 import { BrandLogo } from "../components/BrandLogo";
 import { useAuthStore } from "../stores/authStore";
-import { useDropzone } from 'react-dropzone';
-import './Register.jsx.css';
 
 export default function Register() {
-  const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -61,11 +57,9 @@ export default function Register() {
     
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const res = await fetch(`${apiUrl}/upload`, {
+      // Using the purpose=register flag to allow unauthenticated uploads
+      const res = await fetch(`${apiUrl}/upload?purpose=register`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
         body: formDataUpload,
       });
       
@@ -82,12 +76,13 @@ export default function Register() {
     }
   };
 
-  const handleNext = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long");
+    // Validation
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters long");
       return;
     }
     
@@ -95,21 +90,33 @@ export default function Register() {
       setError("Passwords do not match");
       return;
     }
-    
-    if (formData.role === 'landlord') {
-      setCurrentStep(2);
-    } else {
-      setCurrentStep(2); // Students go to university/gender step
-    }
-  };
 
-  const handleSubmit = async (e) => {
-    if (e) e.preventDefault();
+    if (formData.role === 'landlord') {
+      if (!formData.business_name) {
+        setError("Business name is required for landlords");
+        return;
+      }
+      if (!formData.nrc_front_url || !formData.nrc_back_url) {
+        setError("Both NRC front and back images are required for landlords");
+        return;
+      }
+    } else {
+      if (!formData.gender || !formData.university) {
+        setError("Gender and university are required for students");
+        return;
+      }
+    }
+    
     setLoading(true);
-    setError("");
     
     try {
-      await authRegister(formData);
+      // Map frontend field names to backend expected names
+      const payload = {
+        ...formData,
+        nrc_front: formData.nrc_front_url,
+        nrc_back: formData.nrc_back_url
+      };
+      await authRegister(payload);
       navigate(formData.role === 'landlord' ? "/landlord" : "/");
     } catch (err) {
       setError(err?.message || "Registration failed. Please try again.");
@@ -120,7 +127,7 @@ export default function Register() {
 
   return (
     <div className="ub-auth-page py-5 bg-light min-h-screen">
-      <div className="container" style={{ maxWidth: "550px" }}>
+      <div className="container" style={{ maxWidth: "650px" }}>
         <div className="text-center mb-4">
           <Link to="/" className="d-inline-flex justify-content-center text-decoration-none">
             <BrandLogo height={48} />
@@ -130,14 +137,6 @@ export default function Register() {
         </div>
 
         <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
-          {/* Progress Bar */}
-          <div className="progress rounded-0" style={{ height: "4px" }}>
-            <div 
-              className="progress-bar bg-primary transition-all" 
-              style={{ width: `${(currentStep / (formData.role === 'landlord' ? 3 : 2)) * 100}%` }}
-            />
-          </div>
-
           <div className="card-body p-4 p-md-5">
             {error && (
               <div className="alert alert-danger d-flex align-items-center gap-2 rounded-3 py-3 mb-4" role="alert">
@@ -146,278 +145,218 @@ export default function Register() {
               </div>
             )}
 
-            {/* Step 1: Basic Info & Role */}
-            {currentStep === 1 && (
-              <form onSubmit={handleNext}>
-                <div className="mb-4">
-                  <label className="form-label fw-bold small text-uppercase tracking-wider text-muted">Account Type</label>
-                  <div className="row g-3">
-                    <div className="col-6">
-                      <div 
-                        onClick={() => handleChange("role", "student")}
-                        className={`p-3 rounded-3 border-2 text-center cursor-pointer transition-all ${formData.role === 'student' ? 'border-primary bg-primary-subtle bg-opacity-10' : 'border-light bg-light opacity-75'}`}
-                      >
-                        <GraduationCap size={32} className={`mb-2 ${formData.role === 'student' ? 'text-primary' : 'text-muted'}`} />
-                        <div className={`fw-bold small ${formData.role === 'student' ? 'text-primary' : 'text-dark'}`}>Student</div>
-                      </div>
-                    </div>
-                    <div className="col-6">
-                      <div 
-                        onClick={() => handleChange("role", "landlord")}
-                        className={`p-3 rounded-3 border-2 text-center cursor-pointer transition-all ${formData.role === 'landlord' ? 'border-primary bg-primary-subtle bg-opacity-10' : 'border-light bg-light opacity-75'}`}
-                      >
-                        <Building2 size={32} className={`mb-2 ${formData.role === 'landlord' ? 'text-primary' : 'text-muted'}`} />
-                        <div className={`fw-bold small ${formData.role === 'landlord' ? 'text-primary' : 'text-dark'}`}>Landlord</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label fw-semibold small">Full Name</label>
-                  <div className="input-group">
-                    <span className="input-group-text bg-light border-0"><User size={18} className="text-muted" /></span>
-                    <input
-                      type="text"
-                      className="form-control bg-light border-0"
-                      placeholder="Enter your full name"
-                      value={formData.name}
-                      onChange={(e) => handleChange("name", e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label fw-semibold small">Email Address</label>
-                  <div className="input-group">
-                    <span className="input-group-text bg-light border-0"><Mail size={18} className="text-muted" /></span>
-                    <input
-                      type="email"
-                      className="form-control bg-light border-0"
-                      placeholder="name@example.com"
-                      value={formData.email}
-                      onChange={(e) => handleChange("email", e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="row g-3 mb-3">
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold small">Password</label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-light border-0"><Lock size={18} className="text-muted" /></span>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        className="form-control bg-light border-0"
-                        placeholder="••••••"
-                        value={formData.password}
-                        onChange={(e) => handleChange("password", e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label fw-semibold small">Confirm</label>
-                    <div className="input-group">
-                      <span className="input-group-text bg-light border-0"><Lock size={18} className="text-muted" /></span>
-                      <input
-                        type={showConfirm ? "text" : "password"}
-                        className="form-control bg-light border-0"
-                        placeholder="••••••"
-                        value={formData.confirmPassword}
-                        onChange={(e) => handleChange("confirmPassword", e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <button type="submit" className="btn btn-primary btn-lg w-100 fw-bold mt-2 d-flex align-items-center justify-content-center gap-2">
-                  Continue <ArrowRight size={20} />
-                </button>
-              </form>
-            )}
-
-            {/* Step 2: Student Specific (Gender/University) */}
-            {currentStep === 2 && formData.role === 'student' && (
-              <form onSubmit={handleSubmit}>
-                <div className="mb-4">
-                  <label className="form-label fw-bold small text-uppercase tracking-wider text-muted">Gender</label>
-                  <div className="row g-2">
-                    {["Male", "Female", "Other"].map(g => (
-                      <div key={g} className="col-4">
-                        <button
-                          type="button"
-                          onClick={() => handleChange("gender", g)}
-                          className={`btn w-100 py-2 fw-semibold ${formData.gender === g ? 'btn-primary' : 'btn-outline-light text-dark'}`}
-                        >
-                          {g}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <label className="form-label fw-semibold small">University</label>
-                  <div className="input-group">
-                    <span className="input-group-text bg-light border-0"><School size={18} className="text-muted" /></span>
-                    <select 
-                      className="form-select bg-light border-0"
-                      value={formData.university}
-                      onChange={(e) => handleChange("university", e.target.value)}
-                      required
+            <form onSubmit={handleSubmit}>
+              {/* Account Type Selection */}
+              <div className="mb-4">
+                <label className="form-label fw-bold small text-uppercase tracking-wider text-muted">Account Type</label>
+                <div className="row g-3">
+                  <div className="col-6">
+                    <div 
+                      onClick={() => handleChange("role", "student")}
+                      className={`p-3 rounded-3 border-2 text-center cursor-pointer transition-all ${formData.role === 'student' ? 'border-primary bg-primary-subtle bg-opacity-10' : 'border-light bg-light opacity-75'}`}
                     >
-                      <option value="">Select your university</option>
-                      {universities.map(u => <option key={u} value={u}>{u}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <label className="form-label fw-semibold small">Phone Number</label>
-                  <div className="input-group">
-                    <span className="input-group-text bg-light border-0"><Phone size={18} className="text-muted" /></span>
-                    <input
-                      type="tel"
-                      className="form-control bg-light border-0"
-                      placeholder="+260 XXX XXXXXX"
-                      value={formData.phone}
-                      onChange={(e) => handleChange("phone", e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="d-flex gap-3">
-                  <button type="button" onClick={() => setCurrentStep(1)} className="btn btn-light btn-lg flex-grow-1 fw-bold">
-                    Back
-                  </button>
-                  <button type="submit" className="btn btn-primary btn-lg flex-grow-1 fw-bold" disabled={loading}>
-                    {loading ? 'Creating...' : 'Finish Registration'}
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* Step 2: Landlord Specific (Business Name) */}
-            {currentStep === 2 && formData.role === 'landlord' && (
-              <form onSubmit={(e) => { e.preventDefault(); setCurrentStep(3); }}>
-                <div className="mb-4 text-center py-3">
-                  <div className="bg-primary-subtle text-primary rounded-circle d-inline-flex p-3 mb-3">
-                    <Briefcase size={32} />
-                  </div>
-                  <h5 className="fw-bold">Business Information</h5>
-                  <p className="text-muted small">Tell us about your property management business</p>
-                </div>
-
-                <div className="mb-4">
-                  <label className="form-label fw-semibold small">Business or Compound Name</label>
-                  <div className="input-group">
-                    <span className="input-group-text bg-light border-0"><Building2 size={18} className="text-muted" /></span>
-                    <input
-                      type="text"
-                      className="form-control bg-light border-0"
-                      placeholder="e.g., Sunrise Accommodations"
-                      value={formData.business_name}
-                      onChange={(e) => handleChange("business_name", e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <label className="form-label fw-semibold small">Business Phone Number</label>
-                  <div className="input-group">
-                    <span className="input-group-text bg-light border-0"><Phone size={18} className="text-muted" /></span>
-                    <input
-                      type="tel"
-                      className="form-control bg-light border-0"
-                      placeholder="+260 XXX XXXXXX"
-                      value={formData.phone}
-                      onChange={(e) => handleChange("phone", e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="d-flex gap-3">
-                  <button type="button" onClick={() => setCurrentStep(1)} className="btn btn-light btn-lg flex-grow-1 fw-bold">
-                    Back
-                  </button>
-                  <button type="submit" className="btn btn-primary btn-lg flex-grow-1 fw-bold">
-                    Next Step
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* Step 3: Landlord Specific (NRC Verification) */}
-            {currentStep === 3 && formData.role === 'landlord' && (
-              <form onSubmit={handleSubmit}>
-                <div className="mb-4 text-center py-3">
-                  <div className="bg-warning-subtle text-warning rounded-circle d-inline-flex p-3 mb-3">
-                    <IdCard size={32} />
-                  </div>
-                  <h5 className="fw-bold">Identity Verification</h5>
-                  <p className="text-muted small">Upload your NRC for account verification</p>
-                </div>
-
-                <div className="row g-3 mb-4">
-                  <div className="col-6">
-                    <label className="form-label fw-semibold small d-block text-center">NRC Front</label>
-                    <div className="position-relative">
-                      <input 
-                        type="file" 
-                        className="position-absolute opacity-0 w-100 h-100 cursor-pointer" 
-                        onChange={(e) => handleFileUpload(e.target.files[0], 'front')}
-                        disabled={uploading.front}
-                      />
-                      <div className={`border-2 border-dashed rounded-3 p-3 text-center ${formData.nrc_front_url ? 'border-success bg-success-subtle bg-opacity-10' : 'border-light bg-light'}`}>
-                        {uploading.front ? (
-                          <div className="spinner-border spinner-border-sm text-primary" />
-                        ) : formData.nrc_front_url ? (
-                          <CheckCircle className="text-success" />
-                        ) : (
-                          <Upload size={20} className="text-muted" />
-                        )}
-                      </div>
+                      <GraduationCap size={32} className={`mb-2 ${formData.role === 'student' ? 'text-primary' : 'text-muted'}`} />
+                      <div className={`fw-bold small ${formData.role === 'student' ? 'text-primary' : 'text-dark'}`}>Student</div>
                     </div>
                   </div>
                   <div className="col-6">
-                    <label className="form-label fw-semibold small d-block text-center">NRC Back</label>
-                    <div className="position-relative">
-                      <input 
-                        type="file" 
-                        className="position-absolute opacity-0 w-100 h-100 cursor-pointer" 
-                        onChange={(e) => handleFileUpload(e.target.files[0], 'back')}
-                        disabled={uploading.back}
-                      />
-                      <div className={`border-2 border-dashed rounded-3 p-3 text-center ${formData.nrc_back_url ? 'border-success bg-success-subtle bg-opacity-10' : 'border-light bg-light'}`}>
-                        {uploading.back ? (
-                          <div className="spinner-border spinner-border-sm text-primary" />
-                        ) : formData.nrc_back_url ? (
-                          <CheckCircle className="text-success" />
-                        ) : (
-                          <Upload size={20} className="text-muted" />
-                        )}
-                      </div>
+                    <div 
+                      onClick={() => handleChange("role", "landlord")}
+                      className={`p-3 rounded-3 border-2 text-center cursor-pointer transition-all ${formData.role === 'landlord' ? 'border-primary bg-primary-subtle bg-opacity-10' : 'border-light bg-light opacity-75'}`}
+                    >
+                      <Building2 size={32} className={`mb-2 ${formData.role === 'landlord' ? 'text-primary' : 'text-muted'}`} />
+                      <div className={`fw-bold small ${formData.role === 'landlord' ? 'text-primary' : 'text-dark'}`}>Landlord</div>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="d-flex gap-3">
-                  <button type="button" onClick={() => setCurrentStep(2)} className="btn btn-light btn-lg flex-grow-1 fw-bold">
-                    Back
-                  </button>
-                  <button type="submit" className="btn btn-primary btn-lg flex-grow-1 fw-bold" disabled={loading || uploading.front || uploading.back}>
-                    {loading ? 'Verifying...' : 'Submit Application'}
-                  </button>
+              {/* Common Fields */}
+              <div className="mb-3">
+                <label className="form-label fw-semibold small">Full Name</label>
+                <div className="input-group">
+                  <span className="input-group-text bg-light border-0"><User size={18} className="text-muted" /></span>
+                  <input
+                    type="text"
+                    className="form-control bg-light border-0"
+                    placeholder="Enter your full name"
+                    value={formData.name}
+                    onChange={(e) => handleChange("name", e.target.value)}
+                    required
+                  />
                 </div>
-              </form>
-            )}
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label fw-semibold small">Email Address</label>
+                <div className="input-group">
+                  <span className="input-group-text bg-light border-0"><Mail size={18} className="text-muted" /></span>
+                  <input
+                    type="email"
+                    className="form-control bg-light border-0"
+                    placeholder="name@example.com"
+                    value={formData.email}
+                    onChange={(e) => handleChange("email", e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="row g-3 mb-3">
+                <div className="col-md-6">
+                  <label className="form-label fw-semibold small">Password</label>
+                  <div className="input-group">
+                    <span className="input-group-text bg-light border-0"><Lock size={18} className="text-muted" /></span>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      className="form-control bg-light border-0"
+                      placeholder="••••••"
+                      value={formData.password}
+                      onChange={(e) => handleChange("password", e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label fw-semibold small">Confirm Password</label>
+                  <div className="input-group">
+                    <span className="input-group-text bg-light border-0"><Lock size={18} className="text-muted" /></span>
+                    <input
+                      type={showConfirm ? "text" : "password"}
+                      className="form-control bg-light border-0"
+                      placeholder="••••••"
+                      value={formData.confirmPassword}
+                      onChange={(e) => handleChange("confirmPassword", e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label fw-semibold small">Phone Number</label>
+                <div className="input-group">
+                  <span className="input-group-text bg-light border-0"><Phone size={18} className="text-muted" /></span>
+                  <input
+                    type="tel"
+                    className="form-control bg-light border-0"
+                    placeholder="+260 XXX XXXXXX"
+                    value={formData.phone}
+                    onChange={(e) => handleChange("phone", e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Student-Specific Fields */}
+              {formData.role === 'student' && (
+                <>
+                  <div className="row g-3 mb-3">
+                    <div className="col-md-6">
+                      <label className="form-label fw-semibold small">Gender</label>
+                      <select 
+                        className="form-select bg-light border-0"
+                        value={formData.gender}
+                        onChange={(e) => handleChange("gender", e.target.value)}
+                        required
+                      >
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label fw-semibold small">University</label>
+                      <select 
+                        className="form-select bg-light border-0"
+                        value={formData.university}
+                        onChange={(e) => handleChange("university", e.target.value)}
+                        required
+                      >
+                        <option value="">Select your university</option>
+                        {universities.map(u => <option key={u} value={u}>{u}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Landlord-Specific Fields */}
+              {formData.role === 'landlord' && (
+                <>
+                  <div className="mb-3">
+                    <label className="form-label fw-semibold small">Business or Compound Name</label>
+                    <div className="input-group">
+                      <span className="input-group-text bg-light border-0"><Building2 size={18} className="text-muted" /></span>
+                      <input
+                        type="text"
+                        className="form-control bg-light border-0"
+                        placeholder="e.g., Sunrise Accommodations"
+                        value={formData.business_name}
+                        onChange={(e) => handleChange("business_name", e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="form-label fw-semibold small d-block mb-3">Identity Verification (NRC)</label>
+                    <div className="row g-3">
+                      <div className="col-6">
+                        <label className="form-label small d-block text-center mb-2">NRC Front</label>
+                        <div className="position-relative">
+                          <input 
+                            type="file" 
+                            className="position-absolute opacity-0 w-100 h-100 cursor-pointer" 
+                            onChange={(e) => handleFileUpload(e.target.files[0], 'front')}
+                            disabled={uploading.front}
+                            accept="image/*"
+                          />
+                          <div className={`border-2 border-dashed rounded-3 p-4 text-center ${formData.nrc_front_url ? 'border-success bg-success-subtle bg-opacity-10' : 'border-light bg-light'}`}>
+                            {uploading.front ? (
+                              <div className="spinner-border spinner-border-sm text-primary" />
+                            ) : formData.nrc_front_url ? (
+                              <CheckCircle className="text-success" size={24} />
+                            ) : (
+                              <Upload size={24} className="text-muted" />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-6">
+                        <label className="form-label small d-block text-center mb-2">NRC Back</label>
+                        <div className="position-relative">
+                          <input 
+                            type="file" 
+                            className="position-absolute opacity-0 w-100 h-100 cursor-pointer" 
+                            onChange={(e) => handleFileUpload(e.target.files[0], 'back')}
+                            disabled={uploading.back}
+                            accept="image/*"
+                          />
+                          <div className={`border-2 border-dashed rounded-3 p-4 text-center ${formData.nrc_back_url ? 'border-success bg-success-subtle bg-opacity-10' : 'border-light bg-light'}`}>
+                            {uploading.back ? (
+                              <div className="spinner-border spinner-border-sm text-primary" />
+                            ) : formData.nrc_back_url ? (
+                              <CheckCircle className="text-success" size={24} />
+                            ) : (
+                              <Upload size={24} className="text-muted" />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <button 
+                type="submit" 
+                className="btn btn-primary btn-lg w-100 fw-bold mt-3 d-flex align-items-center justify-content-center gap-2"
+                disabled={loading || uploading.front || uploading.back}
+              >
+                {loading ? 'Creating Account...' : 'Create Account'} {!loading && <ArrowRight size={20} />}
+              </button>
+            </form>
 
             <div className="mt-4 text-center">
               <p className="small text-muted mb-0">
